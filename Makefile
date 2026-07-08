@@ -1,7 +1,7 @@
 RT_LIB = -lrt
 CFLAGS = -Os
 
-LIB_SRC = lib/tinyosc.c
+LIB_SRC = lib/tinyosc.c lib/osc_snippet.c
 
 main: main.c $(LIB_SRC)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -I include/ -Wall -o osc-macro $^ $(LDLIBS) $(RT_LIB)

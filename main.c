@@ -1,4 +1,4 @@
-#include "include/tinyosc.h"
+#include "osc_snippet.h"
 #include "tinyosc.h"
 
 #include <ctype.h>
@@ -9,13 +9,18 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-void print_message_buffer(const char *buffer, const int bufferLen) {
+void print_message_buffer(const char *buffer, const int bufferLen)
+{
   printf("Buffer: ");
-  for (int i = 0; i < bufferLen; ++i) {
+  for (int i = 0; i < bufferLen; ++i)
+  {
     unsigned char val = buffer[i];
-    if (isprint(val)) {
+    if (isprint(val))
+    {
       putchar(val);
-    } else {
+    }
+    else
+    {
       printf("[0x%1x]", val);
     }
   }
@@ -23,7 +28,8 @@ void print_message_buffer(const char *buffer, const int bufferLen) {
   printf("\n");
 }
 
-void test_message_builder() {
+void test_message_builder()
+{
   tosc_message_builder builder = {0};
   tosc_messageBuilderInit(&builder, "/channel/1/123");
 
@@ -39,7 +45,8 @@ void test_message_builder() {
   print_message_buffer(buffer, bufferLen);
 }
 
-void test_message() {
+void test_message()
+{
   char buffer[2048];
   uint32_t bufferLen = tosc_writeMessage(
       buffer, sizeof(buffer), "/channel/1/123", "isfd", 2, "hello", 3.14, 9.81);
@@ -47,9 +54,46 @@ void test_message() {
   print_message_buffer(buffer, bufferLen);
 }
 
-int main() {
+int main()
+{
   test_message();
   test_message_builder();
+
+  char snippet[64] = "/channel/1/t64t(\"hello\" 1 2.0f 3.3d)";
+
+  osc_snippet out_snippet = {0};
+  bool parse_success = parse_osc_snippet(snippet, &out_snippet);
+  if (parse_success)
+  {
+    printf("address: %s\n", out_snippet.message_builder.address);
+    for (int i = 0; i < out_snippet.message_builder.argCount; i++)
+    {
+      tosc_message_argument *arg = &out_snippet.message_builder.args[i];
+      printf("\targ %d: ", i + 1);
+      switch (arg->argType)
+      {
+      case TOSC_ARGUMENT_STRING:
+        printf("%s", out_snippet.message_builder.args[i].argValue.asString);
+        break;
+      case TOSC_ARGUMENT_INT32:
+        printf("%d", out_snippet.message_builder.args[i].argValue.asInt);
+        break;
+      case TOSC_ARGUMENT_FLOAT:
+        printf("%ff", out_snippet.message_builder.args[i].argValue.asFloat);
+        break;
+      case TOSC_ARGUMENT_DOUBLE:
+        printf("%lff", out_snippet.message_builder.args[i].argValue.asDouble);
+        break;
+      default:
+        break;
+      }
+      printf("\n");
+    }
+  }
+  else
+  {
+    printf("parsing failed\n");
+  }
 
   return 0;
 
@@ -70,17 +114,22 @@ int main() {
 
   printf("osc-macro is listening on port 2223\n");
 
-  while (1) {
+  while (1)
+  {
     struct sockaddr client_sa;
     socklen_t client_sa_len = sizeof(struct sockaddr_in);
 
     int len = 0;
 
     while ((len = recvfrom(fd, recv_buffer, sizeof(recv_buffer), 0, &client_sa,
-                           &client_sa_len)) > 0) {
-      if (tosc_isBundle(recv_buffer)) {
+                           &client_sa_len)) > 0)
+    {
+      if (tosc_isBundle(recv_buffer))
+      {
         // do nothing we don't support bundles
-      } else {
+      }
+      else
+      {
         tosc_message osc;
         tosc_parseMessage(&osc, recv_buffer, len);
         tosc_printMessage(&osc);
