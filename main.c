@@ -54,40 +54,56 @@ void test_message()
   print_message_buffer(buffer, bufferLen);
 }
 
+void log_message_builder_args(tosc_message_builder *builder)
+{
+  for (int i = 0; i < builder->argCount; i++)
+  {
+    tosc_message_argument *arg = &builder->args[i];
+    printf("\targ %d: ", i + 1);
+    switch (arg->argType)
+    {
+    case TOSC_ARGUMENT_STRING:
+      printf("%s", arg->argValue.asString);
+      break;
+    case TOSC_ARGUMENT_INT32:
+      printf("%d", arg->argValue.asInt);
+      break;
+    case TOSC_ARGUMENT_FLOAT:
+      printf("%ff", arg->argValue.asFloat);
+      break;
+    case TOSC_ARGUMENT_DOUBLE:
+      printf("%lff", arg->argValue.asDouble);
+      break;
+    default:
+      break;
+    }
+    printf("\n");
+  }
+}
+
 int main()
 {
   test_message();
   test_message_builder();
 
-  char snippet[64] = "/channel/1/t64t(\"hello\" 1 2.0f 3.3d)";
+  char snippet[128] = "/channel/1/test(\"hello\")\n"
+                      "> /channel/1/another()\n"
+                      "> /channel/1/third(1 2 3.14f \"test\")";
 
-  osc_snippet out_snippet = {0};
-  bool parse_success = parse_osc_snippet(snippet, &out_snippet);
-  if (parse_success)
+  osc_macro macro = {0};
+  char *parse_success = parse_osc_macro(snippet, &macro);
+
+  if (parse_success != NULL)
   {
-    printf("address: %s\n", out_snippet.message_builder.address);
-    for (int i = 0; i < out_snippet.message_builder.argCount; i++)
+    printf("trigger address: %s\n", macro.trigger.message_builder.address);
+    log_message_builder_args(&macro.trigger.message_builder);
+
+    printf("there are %d responses\n", macro.responses_count);
+    for (int i = 0; i < macro.responses_count; i++)
     {
-      tosc_message_argument *arg = &out_snippet.message_builder.args[i];
-      printf("\targ %d: ", i + 1);
-      switch (arg->argType)
-      {
-      case TOSC_ARGUMENT_STRING:
-        printf("%s", out_snippet.message_builder.args[i].argValue.asString);
-        break;
-      case TOSC_ARGUMENT_INT32:
-        printf("%d", out_snippet.message_builder.args[i].argValue.asInt);
-        break;
-      case TOSC_ARGUMENT_FLOAT:
-        printf("%ff", out_snippet.message_builder.args[i].argValue.asFloat);
-        break;
-      case TOSC_ARGUMENT_DOUBLE:
-        printf("%lff", out_snippet.message_builder.args[i].argValue.asDouble);
-        break;
-      default:
-        break;
-      }
-      printf("\n");
+      osc_snippet *response = &macro.responses[i];
+      printf("response %d address: %s\n", i + 1, response->message_builder.address);
+      log_message_builder_args(&response->message_builder);
     }
   }
   else
