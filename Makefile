@@ -1,4 +1,5 @@
 RT_LIB = -lrt
+CFLAGS = -Os
 
 LIB_SRC = lib/tinyosc.c
 
