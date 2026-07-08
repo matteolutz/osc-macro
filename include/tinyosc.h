@@ -1,5 +1,9 @@
 /**
  * Copyright (c) 2015-2018, Martin Roth (mhroth@gmail.com)
+ * Copyright (c) 2026, Matteo Lutz (info@matteolutz.de)
+ *
+ * Modifications by Matteo Lutz:
+ * - Added `message_builder` functionality
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -22,28 +26,61 @@
 
 #define TINYOSC_TIMETAG_IMMEDIATELY 1L
 
+#ifndef TINYOSC_MESSAGE_BUILDER_CAPACITY
+#define TINYOSC_MESSAGE_BUILDER_CAPACITY 32
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct tosc_message {
-  char *format;  // a pointer to the format field
-  char *marker;  // the current read head
-  char *buffer;  // the original message data (also points to the address)
-  uint32_t len;  // length of the buffer data
+  char *format; // a pointer to the format field
+  char *marker; // the current read head
+  char *buffer; // the original message data (also points to the address)
+  uint32_t len; // length of the buffer data
 } tosc_message;
 
 typedef struct tosc_bundle {
-  char *marker; // the current write head (where the next message will be written)
-  char *buffer; // the original buffer
-  uint32_t bufLen; // the byte length of the original buffer
+  char *
+      marker; // the current write head (where the next message will be written)
+  char *buffer;       // the original buffer
+  uint32_t bufLen;    // the byte length of the original buffer
   uint32_t bundleLen; // the byte length of the total bundle
 } tosc_bundle;
 
+typedef enum tosc_message_argument_type {
+  TOSC_ARGUMENT_INT32,
 
+  TOSC_ARGUMENT_FLOAT,
+  TOSC_ARGUMENT_DOUBLE,
+
+  TOSC_ARGUMENT_STRING,
+} tosc_message_argument_type;
+
+typedef struct tosc_message_argument {
+  tosc_message_argument_type argType;
+
+  union {
+    uint32_t asInt;
+
+    float asFloat;
+    double asDouble;
+
+    const char *asString;
+  } argValue;
+} tosc_message_argument;
+
+typedef struct tosc_message_builder {
+  const char *address;
+
+  tosc_message_argument args[TINYOSC_MESSAGE_BUILDER_CAPACITY];
+  uint32_t currentArg;
+} tosc_message_builder;
 
 /**
- * Returns true if the buffer refers to a bundle of OSC messages. False otherwise.
+ * Returns true if the buffer refers to a bundle of OSC messages. False
+ * otherwise.
  */
 bool tosc_isBundle(const char *buffer);
 
@@ -140,13 +177,14 @@ int tosc_parseMessage(tosc_message *o, char *buffer, const int len);
 /**
  * Starts writing a bundle to the given buffer with length.
  */
-void tosc_writeBundle(tosc_bundle *b, uint64_t timetag, char *buffer, const int len);
+void tosc_writeBundle(tosc_bundle *b, uint64_t timetag, char *buffer,
+                      const int len);
 
 /**
  * Write a message to a bundle buffer. Returns the number of bytes written.
  */
-uint32_t tosc_writeNextMessage(tosc_bundle *b,
-    const char *address, const char *format, ...);
+uint32_t tosc_writeNextMessage(tosc_bundle *b, const char *address,
+                               const char *format, ...);
 
 /**
  * Returns the length in bytes of the bundle.
@@ -158,7 +196,7 @@ uint32_t tosc_getBundleLength(tosc_bundle *b);
  * The entire buffer is cleared before writing.
  */
 uint32_t tosc_writeMessage(char *buffer, const int len, const char *address,
-    const char *fmt, ...);
+                           const char *fmt, ...);
 
 /**
  * A convenience function to (non-destructively) print a buffer containing
@@ -171,6 +209,21 @@ void tosc_printOscBuffer(char *buffer, const int len);
  * to stdout.
  */
 void tosc_printMessage(tosc_message *o);
+
+void tosc_messageBuilderInit(tosc_message_builder *builder,
+                             const char *address);
+
+bool tosc_messageBuilderAppend(tosc_message_builder *builder,
+                               const tosc_message_argument arg);
+
+bool tosc_messageBuilderAppendInt(tosc_message_builder *builder, uint32_t val);
+bool tosc_messageBuilderAppendFloat(tosc_message_builder *builder, float val);
+bool tosc_messageBuilderAppendDouble(tosc_message_builder *builder, double val);
+bool tosc_messageBuilderAppendString(tosc_message_builder *builder,
+                                     const char *val);
+
+uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
+                                  const int bufferLen);
 
 #ifdef __cplusplus
 }
