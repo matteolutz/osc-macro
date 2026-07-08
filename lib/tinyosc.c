@@ -371,11 +371,11 @@ void tosc_messageBuilderInit(tosc_message_builder *builder,
 
 bool tosc_messageBuilderAppend(tosc_message_builder *builder,
                                const tosc_message_argument arg) {
-  if (builder->currentArg == TINYOSC_MESSAGE_BUILDER_CAPACITY) {
+  if (builder->argCount == TINYOSC_MESSAGE_BUILDER_CAPACITY) {
     return false;
   }
 
-  builder->args[builder->currentArg++] = arg;
+  builder->args[builder->argCount++] = arg;
   return true;
 }
 
@@ -415,7 +415,7 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
   cursor = (cursor + 4) & ~0x3;
   buffer[cursor++] = ',';
 
-  int nArgs = builder->currentArg;
+  int nArgs = builder->argCount;
   if (cursor + nArgs >= bufferLen)
     return -1;
 

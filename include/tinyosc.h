@@ -75,7 +75,7 @@ typedef struct tosc_message_builder {
   const char *address;
 
   tosc_message_argument args[TINYOSC_MESSAGE_BUILDER_CAPACITY];
-  uint32_t currentArg;
+  uint32_t argCount;
 } tosc_message_builder;
 
 /**
