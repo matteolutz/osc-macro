@@ -4,7 +4,7 @@
 
 char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
 {
-  if (snippet[0] != '/')
+  if (*snippet != '/')
     return NULL; // snippet has to start with osc adress
 
   char *eoa = strchr(snippet, '(');
