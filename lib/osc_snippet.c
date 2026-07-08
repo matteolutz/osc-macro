@@ -1,23 +1,22 @@
 #include "osc_snippet.h"
 #include <ctype.h>
-#include <stdbool.h>
 #include <string.h>
 
-bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
+char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
 {
   if (snippet[0] != '/')
-    return false; // snippet has to start with osc adress
+    return NULL; // snippet has to start with osc adress
 
   char *eoa = strchr(snippet, '(');
   if (eoa == NULL)
-    return false; // snippet has to have "("
+    return NULL; // snippet has to have "("
 
   char *cursor = eoa + 1;
   while (*cursor != ')')
   {
     if (*cursor == 0)
     {
-      return false; // unexpected EOF
+      return NULL; // unexpected EOF
     }
 
     if (*cursor == ' ')
@@ -33,7 +32,7 @@ bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
 
       char *endOfString = strchr(cursor, '"');
       if (endOfString == NULL)
-        return false; // string must be terminated
+        return NULL; // string must be terminated
 
       *endOfString = 0; // null terminate the string
       tosc_messageBuilderAppendString(&out_snippet->message_builder, cursor);
@@ -85,7 +84,7 @@ bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
       }
       else
       {
-        return false; // decimal numbers have to end in 'f' or 'd'
+        return NULL; // decimal numbers have to end in 'f' or 'd'
       }
 
       cursor++; // skip over 'f' or 'd'
@@ -95,5 +94,60 @@ bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
   *eoa = 0; // null terminate the end of address
   out_snippet->message_builder.address = snippet;
 
-  return true;
+  return cursor + 1;
+}
+
+char *parse_osc_macro(char *macro, osc_macro *out_macro)
+{
+  osc_snippet trigger = {0};
+  if (!(macro = parse_osc_snippet(macro, &trigger)))
+  {
+    return NULL; // failed to parse trigger
+  }
+  out_macro->trigger = trigger;
+
+  // find the next newline
+  if (!(macro = strchr(macro, '\n')))
+  {
+    return NULL; // no newline found after trigger, so we have no responses
+  }
+
+  macro++; // skip over the newline
+
+  while (1)
+  {
+    if (*macro == ' ')
+    {
+      macro++; // skip whitespace
+      continue;
+    }
+
+    if (*macro != '>')
+    {
+      break;
+    }
+
+    macro++; // skip over the ">"
+    while (macro != 0 && *macro == ' ')
+    {
+      macro++; // skip whitespace
+    }
+
+    if (!(macro = parse_osc_snippet(macro, &out_macro->responses[out_macro->responses_count])))
+    {
+      return NULL; // failed to parse response
+    }
+    out_macro->responses_count++;
+
+    // look for the next newline
+    char *next_newline = strchr(macro, '\n');
+    if (!next_newline)
+    {
+      break; // no more responses
+    }
+
+    macro = next_newline + 1; // skip over the newline
+  }
+
+  return macro;
 }
