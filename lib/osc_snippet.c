@@ -3,7 +3,8 @@
 #include <stdbool.h>
 #include <string.h>
 
-bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet) {
+bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
+{
   if (snippet[0] != '/')
     return false; // snippet has to start with osc adress
 
@@ -12,17 +13,21 @@ bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet) {
     return false; // snippet has to have "("
 
   char *cursor = eoa + 1;
-  while (*cursor != ')') {
-    if (*cursor == 0) {
+  while (*cursor != ')')
+  {
+    if (*cursor == 0)
+    {
       return false; // unexpected EOF
     }
 
-    if (*cursor == ' ') {
+    if (*cursor == ' ')
+    {
       cursor++; // skip whitespace
       continue;
     }
 
-    if (*cursor == '"') {
+    if (*cursor == '"')
+    {
       // we have the start of a string
       cursor++; // skip over the "
 
@@ -36,16 +41,19 @@ bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet) {
       cursor = endOfString + 1;
     }
 
-    if (isdigit(*cursor)) {
+    if (isdigit(*cursor))
+    {
       // we have the start of a numeric value
       int i_val = *cursor++ - '0';
-      while (*cursor != 0 && isdigit(*cursor)) {
+      while (*cursor != 0 && isdigit(*cursor))
+      {
         int digit = *cursor - '0';
         i_val = i_val * 10 + digit;
         cursor++;
       }
 
-      if (*cursor != '.') {
+      if (*cursor != '.')
+      {
         // it isn't a float or double so let's jsut append it
         tosc_messageBuilderAppendInt(&out_snippet->message_builder, i_val);
         continue;
@@ -56,7 +64,8 @@ bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet) {
       cursor++; // skip the "."
 
       // parse fractional part
-      while (*cursor != 0 && isdigit(*cursor)) {
+      while (*cursor != 0 && isdigit(*cursor))
+      {
         int digit = *cursor - '0';
         float_or_double = float_or_double * 10.0 + digit;
         divisor *= 10;
@@ -65,13 +74,17 @@ bool parse_osc_snippet(char *snippet, osc_snippet *out_snippet) {
 
       float_or_double /= divisor;
 
-      if (*cursor == 'f') {
+      if (*cursor == 'f')
+      {
         float f_val = (float)float_or_double;
         tosc_messageBuilderAppendFloat(&out_snippet->message_builder, f_val);
-      } else if (*cursor == 'd') {
-        tosc_messageBuilderAppendDouble(&out_snippet->message_builder,
-                                        float_or_double);
-      } else {
+      }
+      else if (*cursor == 'd')
+      {
+        tosc_messageBuilderAppendDouble(&out_snippet->message_builder, float_or_double);
+      }
+      else
+      {
         return false; // decimal numbers have to end in 'f' or 'd'
       }
 

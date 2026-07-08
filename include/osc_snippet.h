@@ -3,7 +3,8 @@
 
 #include "tinyosc.h"
 
-typedef struct osc_snippet {
+typedef struct osc_snippet
+{
   tosc_message_builder message_builder;
 } osc_snippet;
 

@@ -39,7 +39,8 @@
 #define BUNDLE_ID 0x2362756E646C6500L // "#bundle"
 
 // http://opensoundcontrol.org/spec-1_0
-int tosc_parseMessage(tosc_message *o, char *buffer, const int len) {
+int tosc_parseMessage(tosc_message *o, char *buffer, const int len)
+{
   // NOTE(mhroth): if there's a comma in the address, that's weird
   int i = 0;
   while (buffer[i] != '\0')
@@ -66,24 +67,28 @@ int tosc_parseMessage(tosc_message *o, char *buffer, const int len) {
 }
 
 // check if first eight bytes are '#bundle '
-bool tosc_isBundle(const char *buffer) {
+bool tosc_isBundle(const char *buffer)
+{
   return ((*(const int64_t *)buffer) == htonll(BUNDLE_ID));
 }
 
-void tosc_parseBundle(tosc_bundle *b, char *buffer, const int len) {
+void tosc_parseBundle(tosc_bundle *b, char *buffer, const int len)
+{
   b->buffer = (char *)buffer;
   b->marker = buffer + 16; // move past '#bundle ' and timetag fields
   b->bufLen = len;
   b->bundleLen = len;
 }
 
-uint64_t tosc_getTimetag(tosc_bundle *b) {
+uint64_t tosc_getTimetag(tosc_bundle *b)
+{
   return ntohll(*((uint64_t *)(b->buffer + 8)));
 }
 
 uint32_t tosc_getBundleLength(tosc_bundle *b) { return b->bundleLen; }
 
-bool tosc_getNextMessage(tosc_bundle *b, tosc_message *o) {
+bool tosc_getNextMessage(tosc_bundle *b, tosc_message *o)
+{
   if ((b->marker - b->buffer) >= b->bundleLen)
     return false;
   uint32_t len = (uint32_t)ntohl(*((int32_t *)b->marker));
@@ -98,37 +103,43 @@ char *tosc_getFormat(tosc_message *o) { return o->format; }
 
 uint32_t tosc_getLength(tosc_message *o) { return o->len; }
 
-int32_t tosc_getNextInt32(tosc_message *o) {
+int32_t tosc_getNextInt32(tosc_message *o)
+{
   // convert from big-endian (network btye order)
   const int32_t i = (int32_t)ntohl(*((uint32_t *)o->marker));
   o->marker += 4;
   return i;
 }
 
-int64_t tosc_getNextInt64(tosc_message *o) {
+int64_t tosc_getNextInt64(tosc_message *o)
+{
   const int64_t i = (int64_t)ntohll(*((uint64_t *)o->marker));
   o->marker += 8;
   return i;
 }
 
-uint64_t tosc_getNextTimetag(tosc_message *o) {
+uint64_t tosc_getNextTimetag(tosc_message *o)
+{
   return (uint64_t)tosc_getNextInt64(o);
 }
 
-float tosc_getNextFloat(tosc_message *o) {
+float tosc_getNextFloat(tosc_message *o)
+{
   // convert from big-endian (network btye order)
   const uint32_t i = ntohl(*((uint32_t *)o->marker));
   o->marker += 4;
   return *((float *)(&i));
 }
 
-double tosc_getNextDouble(tosc_message *o) {
+double tosc_getNextDouble(tosc_message *o)
+{
   const uint64_t i = ntohll(*((uint64_t *)o->marker));
   o->marker += 8;
   return *((double *)(&i));
 }
 
-const char *tosc_getNextString(tosc_message *o) {
+const char *tosc_getNextString(tosc_message *o)
+{
   int i = (int)strlen(o->marker);
   if (o->marker + i >= o->buffer + o->len)
     return NULL;
@@ -138,36 +149,43 @@ const char *tosc_getNextString(tosc_message *o) {
   return s;
 }
 
-void tosc_getNextBlob(tosc_message *o, const char **buffer, int *len) {
+void tosc_getNextBlob(tosc_message *o, const char **buffer, int *len)
+{
   int i = (int)ntohl(*((uint32_t *)o->marker)); // get the blob length
-  if (o->marker + 4 + i <= o->buffer + o->len) {
+  if (o->marker + 4 + i <= o->buffer + o->len)
+  {
     *len = i; // length of blob
     *buffer = o->marker + 4;
     i = (i + 7) & ~0x3;
     o->marker += i;
-  } else {
+  }
+  else
+  {
     *len = 0;
     *buffer = NULL;
   }
 }
 
-unsigned char *tosc_getNextMidi(tosc_message *o) {
+unsigned char *tosc_getNextMidi(tosc_message *o)
+{
   unsigned char *m = (unsigned char *)o->marker;
   o->marker += 4;
   return m;
 }
 
-tosc_message *tosc_reset(tosc_message *o) {
+tosc_message *tosc_reset(tosc_message *o)
+{
   int i = 0;
   while (o->format[i] != '\0')
     ++i;
-  i = (i + 4) & ~0x3; // advance to the next multiple of 4 after trailing '\0'
+  i = (i + 4) & ~0x3;            // advance to the next multiple of 4 after trailing '\0'
   o->marker = o->format + i - 1; // -1 to account for ',' format prefix
   return o;
 }
 
 void tosc_writeBundle(tosc_bundle *b, uint64_t timetag, char *buffer,
-                      const int len) {
+                      const int len)
+{
   *((uint64_t *)buffer) = htonll(BUNDLE_ID);
   *((uint64_t *)(buffer + 8)) = htonll(timetag);
 
@@ -179,7 +197,8 @@ void tosc_writeBundle(tosc_bundle *b, uint64_t timetag, char *buffer,
 
 // always writes a multiple of 4 bytes
 static uint32_t tosc_vwrite(char *buffer, const int len, const char *address,
-                            const char *format, va_list ap) {
+                            const char *format, va_list ap)
+{
   memset(buffer, 0, len); // clear the buffer
   uint32_t i = (uint32_t)strlen(address);
   if (address == NULL || i >= len)
@@ -193,9 +212,12 @@ static uint32_t tosc_vwrite(char *buffer, const int len, const char *address,
   tosc_strncpy(buffer + i, format, len - i - s_len);
   i = (i + 4 + s_len) & ~0x3;
 
-  for (int j = 0; format[j] != '\0'; ++j) {
-    switch (format[j]) {
-    case 'b': {
+  for (int j = 0; format[j] != '\0'; ++j)
+  {
+    switch (format[j])
+    {
+    case 'b':
+    {
       const uint32_t n = (uint32_t)va_arg(ap, int); // length of blob
       if (i + 4 + n > len)
         return -3;
@@ -206,7 +228,8 @@ static uint32_t tosc_vwrite(char *buffer, const int len, const char *address,
       i = (i + 3 + n) & ~0x3;
       break;
     }
-    case 'f': {
+    case 'f':
+    {
       if (i + 4 > len)
         return -3;
       const float f = (float)va_arg(ap, double);
@@ -214,7 +237,8 @@ static uint32_t tosc_vwrite(char *buffer, const int len, const char *address,
       i += 4;
       break;
     }
-    case 'd': {
+    case 'd':
+    {
       if (i + 8 > len)
         return -3;
       const double f = (double)va_arg(ap, double);
@@ -222,7 +246,8 @@ static uint32_t tosc_vwrite(char *buffer, const int len, const char *address,
       i += 8;
       break;
     }
-    case 'i': {
+    case 'i':
+    {
       if (i + 4 > len)
         return -3;
       const uint32_t k = (uint32_t)va_arg(ap, int);
@@ -230,7 +255,8 @@ static uint32_t tosc_vwrite(char *buffer, const int len, const char *address,
       i += 4;
       break;
     }
-    case 'm': {
+    case 'm':
+    {
       if (i + 4 > len)
         return -3;
       const unsigned char *const k = (unsigned char *)va_arg(ap, void *);
@@ -239,7 +265,8 @@ static uint32_t tosc_vwrite(char *buffer, const int len, const char *address,
       break;
     }
     case 't':
-    case 'h': {
+    case 'h':
+    {
       if (i + 8 > len)
         return -3;
       const uint64_t k = (uint64_t)va_arg(ap, long long);
@@ -247,7 +274,8 @@ static uint32_t tosc_vwrite(char *buffer, const int len, const char *address,
       i += 8;
       break;
     }
-    case 's': {
+    case 's':
+    {
       const char *str = (const char *)va_arg(ap, void *);
       s_len = (int)strlen(str);
       if (i + s_len >= len)
@@ -270,7 +298,8 @@ static uint32_t tosc_vwrite(char *buffer, const int len, const char *address,
 }
 
 uint32_t tosc_writeNextMessage(tosc_bundle *b, const char *address,
-                               const char *format, ...) {
+                               const char *format, ...)
+{
   va_list ap;
   va_start(ap, format);
   if (b->bundleLen >= b->bufLen)
@@ -285,7 +314,8 @@ uint32_t tosc_writeNextMessage(tosc_bundle *b, const char *address,
 }
 
 uint32_t tosc_writeMessage(char *buffer, const int len, const char *address,
-                           const char *format, ...) {
+                           const char *format, ...)
+{
   va_list ap;
   va_start(ap, format);
   const uint32_t i = tosc_vwrite(buffer, len, address, format, ap);
@@ -293,7 +323,8 @@ uint32_t tosc_writeMessage(char *buffer, const int len, const char *address,
   return i; // return the total number of bytes written
 }
 
-void tosc_printOscBuffer(char *buffer, const int len) {
+void tosc_printOscBuffer(char *buffer, const int len)
+{
   // parse the buffer contents (the raw OSC bytes)
   // a return value of 0 indicates no error
   tosc_message m;
@@ -304,15 +335,19 @@ void tosc_printOscBuffer(char *buffer, const int len) {
     printf("Error while reading OSC buffer: %i\n", err);
 }
 
-void tosc_printMessage(tosc_message *osc) {
+void tosc_printMessage(tosc_message *osc)
+{
   printf("[%i bytes] %s %s",
          osc->len,             // the number of bytes in the OSC message
          tosc_getAddress(osc), // the OSC address string, e.g. "/button1"
          tosc_getFormat(osc)); // the OSC format string, e.g. "f"
 
-  for (int i = 0; osc->format[i] != '\0'; i++) {
-    switch (osc->format[i]) {
-    case 'b': {
+  for (int i = 0; osc->format[i] != '\0'; i++)
+  {
+    switch (osc->format[i])
+    {
+    case 'b':
+    {
       const char *b = NULL; // will point to binary data
       int n = 0;            // takes the length of the blob
       tosc_getNextBlob(osc, &b, &n);
@@ -321,7 +356,8 @@ void tosc_printMessage(tosc_message *osc) {
         printf("%02X", b[j] & 0xFF); // print blob bytes
       break;
     }
-    case 'm': {
+    case 'm':
+    {
       unsigned char *m = tosc_getNextMidi(osc);
       printf(" 0x%02X%02X%02X%02X", m[0], m[1], m[2], m[3]);
       break;
@@ -365,13 +401,16 @@ void tosc_printMessage(tosc_message *osc) {
 }
 
 void tosc_messageBuilderInit(tosc_message_builder *builder,
-                             const char *address) {
+                             const char *address)
+{
   builder->address = address;
 }
 
 bool tosc_messageBuilderAppend(tosc_message_builder *builder,
-                               const tosc_message_argument arg) {
-  if (builder->argCount == TINYOSC_MESSAGE_BUILDER_CAPACITY) {
+                               const tosc_message_argument arg)
+{
+  if (builder->argCount == TINYOSC_MESSAGE_BUILDER_CAPACITY)
+  {
     return false;
   }
 
@@ -379,31 +418,36 @@ bool tosc_messageBuilderAppend(tosc_message_builder *builder,
   return true;
 }
 
-bool tosc_messageBuilderAppendInt(tosc_message_builder *builder, uint32_t val) {
+bool tosc_messageBuilderAppendInt(tosc_message_builder *builder, uint32_t val)
+{
   return tosc_messageBuilderAppend(
       builder, (tosc_message_argument){.argType = TOSC_ARGUMENT_INT32,
                                        .argValue = {.asInt = val}});
 }
-bool tosc_messageBuilderAppendFloat(tosc_message_builder *builder, float val) {
+bool tosc_messageBuilderAppendFloat(tosc_message_builder *builder, float val)
+{
   return tosc_messageBuilderAppend(
       builder, (tosc_message_argument){.argType = TOSC_ARGUMENT_FLOAT,
                                        .argValue = {.asFloat = val}});
 }
 bool tosc_messageBuilderAppendDouble(tosc_message_builder *builder,
-                                     double val) {
+                                     double val)
+{
   return tosc_messageBuilderAppend(
       builder, (tosc_message_argument){.argType = TOSC_ARGUMENT_DOUBLE,
                                        .argValue = {.asDouble = val}});
 }
 bool tosc_messageBuilderAppendString(tosc_message_builder *builder,
-                                     const char *val) {
+                                     const char *val)
+{
   return tosc_messageBuilderAppend(
       builder, (tosc_message_argument){.argType = TOSC_ARGUMENT_STRING,
                                        .argValue = {.asString = val}});
 }
 
 uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
-                                  const int bufferLen) {
+                                  const int bufferLen)
+{
   memset(buffer, 0, bufferLen); // clear the given buffer
   uint32_t cursor = (uint32_t)strlen(builder->address);
 
@@ -419,11 +463,13 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
   if (cursor + nArgs >= bufferLen)
     return -1;
 
-  for (int i = 0; i < nArgs; ++i) {
+  for (int i = 0; i < nArgs; ++i)
+  {
     tosc_message_argument *arg = &builder->args[i];
     char argTypeChar;
 
-    switch (arg->argType) {
+    switch (arg->argType)
+    {
     case TOSC_ARGUMENT_INT32:
       argTypeChar = 'i';
       break;
@@ -446,10 +492,13 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
 
   cursor = (cursor + 4 + nArgs) & ~0x3;
 
-  for (int i = 0; i < nArgs; ++i) {
+  for (int i = 0; i < nArgs; ++i)
+  {
     tosc_message_argument *arg = &builder->args[i];
-    switch (arg->argType) {
-    case TOSC_ARGUMENT_INT32: {
+    switch (arg->argType)
+    {
+    case TOSC_ARGUMENT_INT32:
+    {
       if (cursor + 4 > bufferLen)
         return -3;
       const uint32_t k = arg->argValue.asInt;
@@ -457,7 +506,8 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
       cursor += 4;
       break;
     }
-    case TOSC_ARGUMENT_FLOAT: {
+    case TOSC_ARGUMENT_FLOAT:
+    {
       if (cursor + 4 > bufferLen)
         return -3;
       const float f = arg->argValue.asFloat;
@@ -465,7 +515,8 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
       cursor += 4;
       break;
     }
-    case TOSC_ARGUMENT_DOUBLE: {
+    case TOSC_ARGUMENT_DOUBLE:
+    {
       if (cursor + 8 > bufferLen)
         return -3;
       const double f = arg->argValue.asDouble;
@@ -473,7 +524,8 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
       cursor += 8;
       break;
     }
-    case TOSC_ARGUMENT_STRING: {
+    case TOSC_ARGUMENT_STRING:
+    {
       const char *str = arg->argValue.asString;
       int sLen = (int)strlen(str);
       if (i + sLen >= bufferLen)
