@@ -43,6 +43,8 @@ char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet);
  * > /channel/1/third(1 2 3.14f "test)          > response 2
  *
  * A macro must have a trigger and can have 0-n responses. Each response must be on a new line and start with a '>'.
+ * The maximum number of responses is defined by OSC_MACRO_RESPONSES_CAPACITY. To change this value,
+ * define OSC_MACRO_RESPONSES_CAPACITY before including osc_snippet.h.
  *
  * This function derives substrings from the given snippet so the char*
  * passed to it has to be mutable in order to 0-terminate the substrings.

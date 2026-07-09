@@ -217,17 +217,49 @@ extern "C"
    */
   void tosc_printMessage(tosc_message *o);
 
+  /* ----------------------------- Message Builder ---------------------------- */
+
+  /**
+   * Initializes a already allocated message builder with the given OSC address.
+   * This function should be called before any functions are used on the message
+   * builder struct.
+   */
   void tosc_messageBuilderInit(tosc_message_builder *builder, const char *address);
 
+  /**
+   * Append an argument to the message builder. Returns true if successful, false
+   * if the message builder is full.
+   *
+   * To set the maximum number of arguments, define TINYOSC_MESSAGE_BUILDER_CAPACITY
+   * before including tinyosc.h.
+   */
   bool tosc_messageBuilderAppend(tosc_message_builder *builder, const tosc_message_argument arg);
 
+  /**
+   * Convenience functions to append specific argument types to the message builder.
+   * Returns true if successful, false if the message builder is full.
+   *
+   * Internally, these functions call tosc_messageBuilderAppend() with the appropriate argument type.
+   */
   bool tosc_messageBuilderAppendInt(tosc_message_builder *builder, uint32_t val);
   bool tosc_messageBuilderAppendFloat(tosc_message_builder *builder, float val);
   bool tosc_messageBuilderAppendDouble(tosc_message_builder *builder, double val);
   bool tosc_messageBuilderAppendString(tosc_message_builder *builder, const char *val);
 
+  /**
+   * Compares two message builders for equality. Returns true if they are equal, false otherwise.
+   * Two message builders are considered equal if they...
+   * - have the same address
+   * - have the same number of arguments
+   * - have the same argument types and values in the same order
+   */
   bool tosc_messageBuilderEquals(tosc_message_builder *a, tosc_message_builder *b);
 
+  /**
+   * Builds an OSC message from the given message builder and writes it to the provided buffer.
+   * Returns the number of bytes written to the buffer, or a negative error code if an
+   * error occurred (e.g., buffer too small, invalid argument type).
+   */
   uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer, const int bufferLen);
 
 #ifdef __cplusplus
