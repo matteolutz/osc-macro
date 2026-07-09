@@ -11,6 +11,23 @@ A tiny OSC macro daemon.
 - Define one or more macros in a plain text file.
 - Each macro has a trigger message and optional response messages.
 - When a trigger matches an incoming OSC message, the matching responses are built and sent.
+- Responses can be either direct OSC snippets or response factory invocations.
+- Response factories let you generate a response dynamically from named arguments, which is useful when the final OSC address or payload depends on runtime input.
+
+## Response Factories
+
+Response factories are registered in code and can then be referenced from the macro file by name.
+
+The included binary currently registers an `echo` factory. It expects the first argument to be an OSC address string, then copies any remaining arguments into the outgoing message.
+
+Example:
+
+```text
+/channel/3/test()
+> echo("/hello/world" 1 2 3.14f)
+```
+
+This keeps the macro file compact while still allowing responses that are assembled dynamically in C.
 
 ## Planned
 
@@ -25,6 +42,7 @@ The included [macros.txt](macros.txt) shows the expected format:
 /channel/1/test("hello")
 > /channel/1/another()
 > /channel/1/third(1 2 3.14f "test")
+> echo("/hello/world" 1 2 3.14f)
 ```
 
 ## Build and run
