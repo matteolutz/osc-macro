@@ -85,9 +85,20 @@ void handle_trigger(osc_macro *macro, int socket_fd, struct sockaddr_in *client_
   printf("\n");
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-  char *osc_macro_file = read_entire_file("./maros.txt");
+  if (argc < 2)
+  {
+    printf("Usage: %s <osc-macro-file>\n", argv[0]);
+    return 1;
+  }
+
+  char *osc_macro_file = read_entire_file(argv[1]);
+  if (osc_macro_file == NULL)
+  {
+    printf("could not read from osc macro file %s\n", argv[1]);
+    return 1; // don't go to panic, this would mean calling free on a NULL pointer
+  }
 
   osc_macro_collection macro_collection = {0};
   char *parse_success = parse_osc_macro_collection(osc_macro_file, &macro_collection);

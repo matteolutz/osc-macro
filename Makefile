@@ -12,7 +12,7 @@ dev: osc-macro
 
 run: dev
 run:
-	./osc-macro
+	./osc-macro $(ARGS)
 
 asm: main.c $(LIB_SRC)
 	rm -rf asm \
