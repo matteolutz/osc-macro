@@ -1,146 +1,76 @@
 #include "osc_snippet.h"
 #include "tinyosc.h"
 
-#include <ctype.h>
-#include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
-void print_message_buffer(const char *buffer, const int bufferLen)
+/**
+ * Read the entire file into a heap allocated buffer and return a pointer to it.
+ * The caller is responsible for freeing the buffer.
+ */
+char *read_entire_file(const char *filename)
 {
-  printf("Buffer: ");
-  for (int i = 0; i < bufferLen; ++i)
+  FILE *fp = fopen(filename, "r");
+
+  if (fp == NULL)
+    return NULL;
+
+  if (fseek(fp, 0, SEEK_END) != 0)
+    goto failed;
+
+  long file_size = ftell(fp);
+  if (file_size == -1)
+    goto failed;
+
+  char *buffer = malloc(file_size + 1);
+  if (buffer == NULL)
+    goto failed;
+
+  if (fseek(fp, 0, SEEK_SET) != 0)
   {
-    unsigned char val = buffer[i];
-    if (isprint(val))
-    {
-      putchar(val);
-    }
-    else
-    {
-      printf("[0x%1x]", val);
-    }
+    free(buffer);
+    goto failed;
   }
 
-  printf("\n");
-}
+  size_t actual_size = fread(buffer, sizeof(char), file_size, fp);
+  buffer[actual_size++] = '\0'; // null terminate the buffer
 
-void test_message_builder()
-{
-  tosc_message_builder builder = {0};
-  tosc_messageBuilderInit(&builder, "/channel/1/123");
-
-  tosc_messageBuilderAppendInt(&builder, 2);
-  tosc_messageBuilderAppendString(&builder, "hello");
-  tosc_messageBuilderAppendFloat(&builder, 3.14);
-  tosc_messageBuilderAppendDouble(&builder, 9.81);
-
-  char buffer[512];
-  uint32_t bufferLen =
-      tosc_messageBuilderBuild(&builder, buffer, sizeof(buffer));
-
-  print_message_buffer(buffer, bufferLen);
-}
-
-void test_message_builder_eq()
-{
-  tosc_message_builder builder_a = {0};
-  tosc_messageBuilderInit(&builder_a, "/channel/1/123");
-
-  tosc_messageBuilderAppendInt(&builder_a, 2);
-  tosc_messageBuilderAppendString(&builder_a, "hello");
-  tosc_messageBuilderAppendFloat(&builder_a, 3.14);
-  tosc_messageBuilderAppendDouble(&builder_a, 9.81);
-
-  tosc_message_builder builder_b = {0};
-  tosc_messageBuilderInit(&builder_b, "/channel/1/123");
-
-  tosc_messageBuilderAppendInt(&builder_b, 2);
-  tosc_messageBuilderAppendString(&builder_b, "hello");
-  tosc_messageBuilderAppendFloat(&builder_b, 3.14);
-  tosc_messageBuilderAppendDouble(&builder_b, 9.81);
-
-  printf("builder_a == builder_b: %d\n", tosc_messageBuilderEquals(&builder_a, &builder_b));
-}
-
-void test_message()
-{
-  char buffer[2048];
-  uint32_t bufferLen = tosc_writeMessage(
-      buffer, sizeof(buffer), "/channel/1/123", "isfd", 2, "hello", 3.14, 9.81);
-
-  print_message_buffer(buffer, bufferLen);
-}
-
-void log_message_builder_args(tosc_message_builder *builder)
-{
-  for (int i = 0; i < builder->argCount; i++)
+  if (ferror(fp) != 0)
   {
-    tosc_message_argument *arg = &builder->args[i];
-    printf("\targ %d: ", i + 1);
-    switch (arg->argType)
-    {
-    case TOSC_ARGUMENT_STRING:
-      printf("%s", arg->argValue.asString);
-      break;
-    case TOSC_ARGUMENT_INT32:
-      printf("%d", arg->argValue.asInt);
-      break;
-    case TOSC_ARGUMENT_FLOAT:
-      printf("%ff", arg->argValue.asFloat);
-      break;
-    case TOSC_ARGUMENT_DOUBLE:
-      printf("%lff", arg->argValue.asDouble);
-      break;
-    default:
-      break;
-    }
-    printf("\n");
+    free(buffer);
+    goto failed;
   }
-}
 
+  fclose(fp);
+  return buffer;
+
+failed:
+  fclose(fp);
+  return NULL;
+}
 int main()
 {
-  test_message();
-  test_message_builder();
+  char *osc_macro_file = read_entire_file("./maros.txt");
 
-  test_message_builder_eq();
+  osc_macro_collection macro_collection = {0};
+  char *parse_success = parse_osc_macro_collection(osc_macro_file, &macro_collection);
 
-  char snippet[128] = "/channel/1/test(\"hello\")\n"
-                      "> /channel/1/another()\n"
-                      "> /channel/1/third(1 2 3.14f \"test\")";
-
-  osc_macro macro = {0};
-  char *parse_success = parse_osc_macro(snippet, &macro);
-
-  if (parse_success != NULL)
-  {
-    printf("trigger address: %s\n", macro.trigger.message_builder.address);
-    log_message_builder_args(&macro.trigger.message_builder);
-
-    printf("there are %d responses\n", macro.responses_count);
-    for (int i = 0; i < macro.responses_count; i++)
-    {
-      osc_snippet *response = &macro.responses[i];
-      printf("response %d address: %s\n", i + 1, response->message_builder.address);
-      log_message_builder_args(&response->message_builder);
-    }
-  }
-  else
+  if (parse_success == NULL)
   {
     printf("parsing failed\n");
+    goto panic;
   }
 
-  return 0;
-
   char recv_buffer[2048];
+  char send_buffer[2048];
 
   int fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (fd < 0)
-    return 1;
+    goto panic;
 
   struct sockaddr_in sin;
   sin.sin_family = AF_INET;
@@ -149,7 +79,7 @@ int main()
 
   int bind_result = bind(fd, (struct sockaddr *)&sin, sizeof(struct sockaddr));
   if (bind_result < 0)
-    return 1;
+    goto panic;
 
   printf("osc-macro is listening on port 2223\n");
 
@@ -164,19 +94,44 @@ int main()
                            &client_sa_len)) > 0)
     {
       if (tosc_isBundle(recv_buffer))
-      {
-        // do nothing we don't support bundles
-      }
-      else
-      {
-        tosc_message osc;
-        tosc_parseMessage(&osc, recv_buffer, len);
-        tosc_printMessage(&osc);
+        continue; // do nothing we don't support bundles
 
-        printf("Address: %s\n", tosc_getAddress(&osc));
+      tosc_message osc;
+      tosc_parseMessage(&osc, recv_buffer, len);
+
+      printf("Received OSC message:\n");
+      tosc_printMessage(&osc);
+      tosc_reset(&osc); // tosc_printMessage doesn't reset the marker so we have to do it manually
+
+      osc_macro *triggered_macro = find_macro_by_trigger_message(&macro_collection, &osc);
+      if (triggered_macro == NULL)
+        continue;
+
+      printf("found macro for trigger!\n");
+
+      for (int i = 0; i < triggered_macro->responses_count; ++i)
+      {
+        printf("Sending response %d:\n", i + 1);
+        tosc_messageBuilderPrint(&triggered_macro->responses[i].message_builder);
+
+        uint32_t bytes_written = tosc_messageBuilderBuild(&triggered_macro->responses[i].message_builder, send_buffer, sizeof(send_buffer));
+        if (bytes_written == 0)
+        {
+          printf("failed to build response!\n");
+          continue;
+        }
+
+        int send_result = sendto(fd, send_buffer, bytes_written, 0, &client_sa,
+                                 client_sa_len);
+        printf("response %d sent: %d bytes\n", i + 1, send_result);
       }
     }
   }
 
+  free(osc_macro_file);
   return 0;
+
+panic:
+  free(osc_macro_file);
+  return 1;
 }

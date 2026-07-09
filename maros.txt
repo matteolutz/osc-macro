@@ -1,0 +1,6 @@
+/channel/1/test("hello")
+> /channel/1/another()
+> /channel/1/third(1 2 3.14f "test")
+
+/channel/2/test()
+> /channel/2/another()
