@@ -52,6 +52,7 @@ failed:
   fclose(fp);
   return NULL;
 }
+
 int main()
 {
   char *osc_macro_file = read_entire_file("./maros.txt");
@@ -61,7 +62,7 @@ int main()
 
   if (parse_success == NULL)
   {
-    printf("parsing failed\n");
+    printf("osc macro collection parsing failed\n");
     goto panic;
   }
 
@@ -70,7 +71,17 @@ int main()
 
   int fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (fd < 0)
+  {
+    printf("failed to create socket\n");
     goto panic;
+  }
+
+  // int resuse_result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+  // if (resuse_result < 0)
+  // {
+  //   printf("failed to set SO_REUSEADDR\n");
+  //   goto panic;
+  // }
 
   struct sockaddr_in sin;
   sin.sin_family = AF_INET;
@@ -79,7 +90,10 @@ int main()
 
   int bind_result = bind(fd, (struct sockaddr *)&sin, sizeof(struct sockaddr));
   if (bind_result < 0)
+  {
+    printf("failed to bind socket\n");
     goto panic;
+  }
 
   printf("osc-macro is listening on port 2223\n");
 
