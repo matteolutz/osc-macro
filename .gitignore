@@ -1,5 +1,6 @@
 # Build Artifacts
 osc-macro
+asm/
 
 # Utility binaries
 osc-utility

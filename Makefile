@@ -14,8 +14,15 @@ run: dev
 run:
 	./osc-macro
 
+asm: main.c $(LIB_SRC)
+	rm -rf asm \
+		&& mkdir asm \
+		&& cd asm \
+		&& $(CC) $(CPPFLAGS) $(CFLAGS) -I ../include/ -Wall -S $(addprefix ../,$^)
+
 # ---------- Phony Targets ----------
 clean:
 	rm osc-macro
+	rm -rf asm
 
 .PHONY: clean
