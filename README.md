@@ -67,6 +67,8 @@ This project incorporates code from:
 
 - [tinyosc](https://github.com/mhroth/tinyosc) - Copyright (C) 2026 mhroth  
   Licensed under the ISC License
+- [nob.h](https://github.com/tsoding/nob.h) - Copyright (C) 2024 Alexey Kutepov  
+  Licensed under the MIT License
 
 ---
 
