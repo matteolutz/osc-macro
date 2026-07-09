@@ -53,7 +53,7 @@ failed:
   return NULL;
 }
 
-void handle_trigger(osc_macro *macro, int socket_fd, struct sockaddr_in *client_address, char *send_buffer, size_t send_buffer_size)
+void handle_trigger(osc_macro_collection *macro_collection, osc_macro *macro, int socket_fd, struct sockaddr_in *client_address, char *send_buffer, size_t send_buffer_size)
 {
   client_address->sin_port = htons(2223); // send to port 2223
   printf("Sending %lu responses to: %s:%d\n", macro->responses.count, inet_ntoa(client_address->sin_addr), ntohs(client_address->sin_port));
@@ -72,9 +72,16 @@ void handle_trigger(osc_macro *macro, int socket_fd, struct sockaddr_in *client_
       break;
     case OSC_MACRO_RESPONSE_TYPE_FACTORY:
     {
-      osc_macro_response_factory *factory = &macro->responses.items[i].response.as_factory;
-      (void)factory;
-      // factory->callback(builder_ref, factory->args, factory->arg_count);
+      osc_macro_factory_invocation *invocation = &macro->responses.items[i].response.as_factory;
+      osc_response_factory *factory = find_macro_response_factory(macro_collection, invocation->name);
+
+      if (factory == NULL)
+      {
+        printf("Response factory '%s' not found\n", invocation->name);
+        continue;
+      }
+
+      factory->callback(builder_ref, invocation->args.items, invocation->args.count);
       break;
     }
     default:
@@ -132,6 +139,8 @@ int main(int argc, char *argv[])
     goto panic;
   }
 
+  register_macro_response_factory(&macro_collection, "test", NULL);
+
   char recv_buffer[2048];
   char send_buffer[2048];
 
@@ -178,7 +187,7 @@ int main(int argc, char *argv[])
       continue;
 
     printf("------------------------- found macro for trigger ------------------------\n");
-    handle_trigger(triggered_macro, fd, &client_address, send_buffer, sizeof(send_buffer));
+    handle_trigger(&macro_collection, triggered_macro, fd, &client_address, send_buffer, sizeof(send_buffer));
     printf("-------------------------- done handling trigger -------------------------\n");
   }
 

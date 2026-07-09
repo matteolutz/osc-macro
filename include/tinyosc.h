@@ -28,10 +28,6 @@
 
 #define TINYOSC_TIMETAG_IMMEDIATELY 1L
 
-#ifndef TINYOSC_MESSAGE_BUILDER_CAPACITY
-#define TINYOSC_MESSAGE_BUILDER_CAPACITY 16
-#endif
-
 #ifdef __cplusplus
 extern "C"
 {

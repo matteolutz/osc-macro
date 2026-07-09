@@ -3,18 +3,6 @@
 
 #include "vector.h"
 
-#ifndef OSC_MACRO_RESPONSES_CAPACITY
-#define OSC_MACRO_RESPONSES_CAPACITY 8
-#endif
-
-#ifndef OSC_MAX_MACROS
-#define OSC_MAX_MACROS 16
-#endif
-
-#ifndef OSC_MAX_RESPONSE_FACTORY_ARGS
-#define OSC_MAX_RESPONSE_FACTORY_ARGS 8
-#endif
-
 #include "tinyosc.h"
 
 typedef struct osc_snippet
@@ -28,14 +16,17 @@ typedef enum osc_macro_response_type
   OSC_MACRO_RESPONSE_TYPE_FACTORY
 } osc_macro_response_type;
 
-typedef struct osc_macro_response_factory
+typedef struct osc_response_factory
 {
+  const char *name;
   void (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], uint32_t arg_count);
+} osc_response_factory;
 
-  // those args are not actually directly used by tosc,
-  // but are passed to the callback function so it can use them to build the response message
+typedef struct osc_macro_factory_invocation
+{
+  const char *name;
   VECTOR(tosc_message_argument, args);
-} osc_macro_response_factory;
+} osc_macro_factory_invocation;
 
 typedef struct osc_macro_response
 {
@@ -44,7 +35,7 @@ typedef struct osc_macro_response
   union
   {
     osc_snippet as_osc;
-    osc_macro_response_factory as_factory;
+    osc_macro_factory_invocation as_factory;
   } response;
 } osc_macro_response;
 
@@ -58,6 +49,7 @@ typedef struct osc_macro
 typedef struct osc_macro_collection
 {
   VECTOR(osc_macro, macros);
+  VECTOR(osc_response_factory, response_factories);
 } osc_macro_collection;
 
 /**
@@ -116,6 +108,9 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
  * Returns a pointer to the found macro or NULL if no matching macro was found.
  */
 osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_message *trigger_message);
+
+void register_macro_response_factory(osc_macro_collection *collection, const char *name, void (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], uint32_t arg_count));
+osc_response_factory *find_macro_response_factory(osc_macro_collection *collection, const char *name);
 
 void free_osc_macro_response(osc_macro_response *response);
 void free_osc_macro(osc_macro *macro);

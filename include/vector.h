@@ -1,7 +1,7 @@
 /**
  * Vector implementation in C.
  *
- * Code based on (nob.h)[https://github.com/tsoding/nob.h]
+ * Code heavily based on (nob.h)[https://github.com/tsoding/nob.h]
  * Copyright (c) 2024 Alexey Kutepov
    Permission is hereby granted, free of charge, to any person obtaining a copy of
    this software and associated documentation files (the "Software"), to deal in
@@ -38,6 +38,10 @@
 #define VEC_ASSERT assert
 #endif
 
+#ifndef VEC_INITIAL_CAPACITY
+#define VEC_INITIAL_CAPACITY 4
+#endif
+
 #include <stddef.h>
 
 #define VECTOR(type, name) \
@@ -55,7 +59,7 @@
         {                                                                                      \
             if ((vec)->capacity == 0)                                                          \
             {                                                                                  \
-                (vec)->capacity = 4;                                                           \
+                (vec)->capacity = (VEC_INITIAL_CAPACITY);                                      \
             }                                                                                  \
             while ((expected_capacity) > (vec)->capacity)                                      \
             {                                                                                  \

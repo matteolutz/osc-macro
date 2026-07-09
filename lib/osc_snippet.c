@@ -135,6 +135,10 @@ char *parse_osc_macro(char *macro, osc_macro *out_macro)
       macro++; // skip whitespace
     }
 
+    // TODO: parsing of response factories
+    // if the lines, doesn't start with a "/",
+    // it is used as a factory
+
     osc_snippet osc_response = {0};
     if (!(macro = parse_osc_snippet(macro, &osc_response)))
     {
@@ -195,6 +199,26 @@ osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_
   return NULL;
 }
 
+void register_macro_response_factory(osc_macro_collection *collection, const char *name, void (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], uint32_t arg_count))
+{
+  osc_response_factory factory = {.name = name, .callback = callback};
+  vec_push(&collection->response_factories, factory);
+}
+
+osc_response_factory *find_macro_response_factory(osc_macro_collection *collection, const char *name)
+{
+  for (int i = 0; i < collection->response_factories.count; ++i)
+  {
+    osc_response_factory *factory = &collection->response_factories.items[i];
+    if (strcmp(factory->name, name) == 0)
+    {
+      return factory;
+    }
+  }
+
+  return NULL;
+}
+
 void free_osc_macro_response(osc_macro_response *response)
 {
   switch (response->type)
@@ -228,4 +252,5 @@ void free_osc_macro_collection(osc_macro_collection *collection)
   }
 
   vec_free(collection->macros);
+  vec_free(collection->response_factories);
 }
