@@ -45,6 +45,27 @@ void test_message_builder()
   print_message_buffer(buffer, bufferLen);
 }
 
+void test_message_builder_eq()
+{
+  tosc_message_builder builder_a = {0};
+  tosc_messageBuilderInit(&builder_a, "/channel/1/123");
+
+  tosc_messageBuilderAppendInt(&builder_a, 2);
+  tosc_messageBuilderAppendString(&builder_a, "hello");
+  tosc_messageBuilderAppendFloat(&builder_a, 3.14);
+  tosc_messageBuilderAppendDouble(&builder_a, 9.81);
+
+  tosc_message_builder builder_b = {0};
+  tosc_messageBuilderInit(&builder_b, "/channel/1/123");
+
+  tosc_messageBuilderAppendInt(&builder_b, 2);
+  tosc_messageBuilderAppendString(&builder_b, "hello");
+  tosc_messageBuilderAppendFloat(&builder_b, 3.14);
+  tosc_messageBuilderAppendDouble(&builder_b, 9.81);
+
+  printf("builder_a == builder_b: %d\n", tosc_messageBuilderEquals(&builder_a, &builder_b));
+}
+
 void test_message()
 {
   char buffer[2048];
@@ -85,6 +106,8 @@ int main()
 {
   test_message();
   test_message_builder();
+
+  test_message_builder_eq();
 
   char snippet[128] = "/channel/1/test(\"hello\")\n"
                       "> /channel/1/another()\n"

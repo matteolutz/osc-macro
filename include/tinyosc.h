@@ -217,20 +217,18 @@ extern "C"
    */
   void tosc_printMessage(tosc_message *o);
 
-  void tosc_messageBuilderInit(tosc_message_builder *builder,
-                               const char *address);
+  void tosc_messageBuilderInit(tosc_message_builder *builder, const char *address);
 
-  bool tosc_messageBuilderAppend(tosc_message_builder *builder,
-                                 const tosc_message_argument arg);
+  bool tosc_messageBuilderAppend(tosc_message_builder *builder, const tosc_message_argument arg);
 
   bool tosc_messageBuilderAppendInt(tosc_message_builder *builder, uint32_t val);
   bool tosc_messageBuilderAppendFloat(tosc_message_builder *builder, float val);
   bool tosc_messageBuilderAppendDouble(tosc_message_builder *builder, double val);
-  bool tosc_messageBuilderAppendString(tosc_message_builder *builder,
-                                       const char *val);
+  bool tosc_messageBuilderAppendString(tosc_message_builder *builder, const char *val);
 
-  uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
-                                    const int bufferLen);
+  bool tosc_messageBuilderEquals(tosc_message_builder *a, tosc_message_builder *b);
+
+  uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer, const int bufferLen);
 
 #ifdef __cplusplus
 }

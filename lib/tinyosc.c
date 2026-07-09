@@ -445,6 +445,64 @@ bool tosc_messageBuilderAppendString(tosc_message_builder *builder,
                                        .argValue = {.asString = val}});
 }
 
+bool tosc_messageBuilderEquals(tosc_message_builder *a, tosc_message_builder *b)
+{
+  // address has to match
+  if (strcmp(a->address, b->address) != 0)
+  {
+    return false;
+  }
+
+  // args have to match
+  if (a->argCount != b->argCount)
+  {
+    return false;
+  }
+
+  for (int i = 0; i < a->argCount; ++i)
+  {
+    tosc_message_argument *argA = &a->args[i];
+    tosc_message_argument *argB = &b->args[i];
+
+    if (argA->argType != argB->argType)
+    {
+      return false;
+    }
+
+    switch (argA->argType)
+    {
+    case TOSC_ARGUMENT_INT32:
+      if (argA->argValue.asInt != argB->argValue.asInt)
+      {
+        return false;
+      }
+      break;
+    case TOSC_ARGUMENT_FLOAT:
+      if (argA->argValue.asFloat != argB->argValue.asFloat)
+      {
+        return false;
+      }
+      break;
+    case TOSC_ARGUMENT_DOUBLE:
+      if (argA->argValue.asDouble != argB->argValue.asDouble)
+      {
+        return false;
+      }
+      break;
+    case TOSC_ARGUMENT_STRING:
+      if (strcmp(argA->argValue.asString, argB->argValue.asString) != 0)
+      {
+        return false;
+      }
+      break;
+    default:
+      break;
+    }
+  }
+
+  return true;
+}
+
 uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
                                   const int bufferLen)
 {
