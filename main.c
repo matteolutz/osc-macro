@@ -53,6 +53,38 @@ failed:
   return NULL;
 }
 
+void handle_trigger(osc_macro *macro, int socket_fd, struct sockaddr_in *client_address, char *send_buffer, size_t send_buffer_size)
+{
+  client_address->sin_port = htons(2223); // send to port 2223
+  printf("Sending %d responses to: %s:%d\n", macro->responses_count, inet_ntoa(client_address->sin_addr), ntohs(client_address->sin_port));
+
+  for (int i = 0; i < macro->responses_count; ++i)
+  {
+    printf("\nSending response %d:\n", i + 1);
+    tosc_messageBuilderPrint(&macro->responses[i].message_builder);
+
+    uint32_t bytes_written = tosc_messageBuilderBuild(&macro->responses[i].message_builder, send_buffer, send_buffer_size);
+    if (bytes_written == 0)
+    {
+      printf("Failed to build response %d\n", i + 1);
+      continue;
+    }
+
+    printf("Response %d built: %d bytes\n", i + 1, bytes_written);
+
+    int send_result = sendto(socket_fd, send_buffer, bytes_written, 0, (struct sockaddr *)client_address, sizeof(struct sockaddr_in));
+    if (send_result < 0)
+    {
+      printf("failed to send response %d\n", i + 1);
+      continue;
+    }
+
+    printf("Response %d sent: %d bytes\n", i + 1, send_result);
+  }
+
+  printf("\n");
+}
+
 int main()
 {
   char *osc_macro_file = read_entire_file("./maros.txt");
@@ -76,13 +108,6 @@ int main()
     goto panic;
   }
 
-  // int resuse_result = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
-  // if (resuse_result < 0)
-  // {
-  //   printf("failed to set SO_REUSEADDR\n");
-  //   goto panic;
-  // }
-
   struct sockaddr_in sin;
   sin.sin_family = AF_INET;
   sin.sin_port = htons(2223);
@@ -97,49 +122,30 @@ int main()
 
   printf("osc-macro is listening on port 2223\n");
 
+  struct sockaddr_in client_address;
+  socklen_t client_address_size = sizeof(client_address);
+
   while (1)
   {
-    struct sockaddr client_sa;
-    socklen_t client_sa_len = sizeof(struct sockaddr_in);
+    int len = recvfrom(fd, recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr *)&client_address, &client_address_size);
 
-    int len = 0;
+    if (tosc_isBundle(recv_buffer))
+      continue; // do nothing we don't support bundles
 
-    while ((len = recvfrom(fd, recv_buffer, sizeof(recv_buffer), 0, &client_sa,
-                           &client_sa_len)) > 0)
-    {
-      if (tosc_isBundle(recv_buffer))
-        continue; // do nothing we don't support bundles
+    tosc_message osc;
+    tosc_parseMessage(&osc, recv_buffer, len);
 
-      tosc_message osc;
-      tosc_parseMessage(&osc, recv_buffer, len);
+    printf("Received OSC message:\n");
+    tosc_printMessage(&osc);
+    tosc_reset(&osc); // tosc_printMessage doesn't reset the marker so we have to do it manually
 
-      printf("Received OSC message:\n");
-      tosc_printMessage(&osc);
-      tosc_reset(&osc); // tosc_printMessage doesn't reset the marker so we have to do it manually
+    osc_macro *triggered_macro = find_macro_by_trigger_message(&macro_collection, &osc);
+    if (triggered_macro == NULL)
+      continue;
 
-      osc_macro *triggered_macro = find_macro_by_trigger_message(&macro_collection, &osc);
-      if (triggered_macro == NULL)
-        continue;
-
-      printf("found macro for trigger!\n");
-
-      for (int i = 0; i < triggered_macro->responses_count; ++i)
-      {
-        printf("Sending response %d:\n", i + 1);
-        tosc_messageBuilderPrint(&triggered_macro->responses[i].message_builder);
-
-        uint32_t bytes_written = tosc_messageBuilderBuild(&triggered_macro->responses[i].message_builder, send_buffer, sizeof(send_buffer));
-        if (bytes_written == 0)
-        {
-          printf("failed to build response!\n");
-          continue;
-        }
-
-        int send_result = sendto(fd, send_buffer, bytes_written, 0, &client_sa,
-                                 client_sa_len);
-        printf("response %d sent: %d bytes\n", i + 1, send_result);
-      }
-    }
+    printf("------------------------- found macro for trigger ------------------------\n");
+    handle_trigger(triggered_macro, fd, &client_address, send_buffer, sizeof(send_buffer));
+    printf("-------------------------- done handling trigger -------------------------\n");
   }
 
   free(osc_macro_file);
