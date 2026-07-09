@@ -24,6 +24,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "vector.h"
+
 #define TINYOSC_TIMETAG_IMMEDIATELY 1L
 
 #ifndef TINYOSC_MESSAGE_BUILDER_CAPACITY
@@ -81,8 +83,7 @@ extern "C"
   {
     const char *address;
 
-    tosc_message_argument args[TINYOSC_MESSAGE_BUILDER_CAPACITY];
-    uint32_t argCount;
+    VECTOR(tosc_message_argument, args);
   } tosc_message_builder;
 
   /**
@@ -276,6 +277,8 @@ extern "C"
    * error occurred (e.g., buffer too small, invalid argument type).
    */
   uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer, const int bufferLen);
+
+  void tosc_messageBuilderFree(tosc_message_builder *builder);
 
 #ifdef __cplusplus
 }

@@ -409,12 +409,7 @@ void tosc_messageBuilderInit(tosc_message_builder *builder,
 bool tosc_messageBuilderAppend(tosc_message_builder *builder,
                                const tosc_message_argument arg)
 {
-  if (builder->argCount == TINYOSC_MESSAGE_BUILDER_CAPACITY)
-  {
-    return false;
-  }
-
-  builder->args[builder->argCount++] = arg;
+  vec_push(&builder->args, arg);
   return true;
 }
 
@@ -454,15 +449,15 @@ bool tosc_messageBuilderEquals(tosc_message_builder *a, tosc_message_builder *b)
   }
 
   // args have to match
-  if (a->argCount != b->argCount)
+  if (a->args.count != b->args.count)
   {
     return false;
   }
 
-  for (int i = 0; i < a->argCount; ++i)
+  for (int i = 0; i < a->args.count; ++i)
   {
-    tosc_message_argument *argA = &a->args[i];
-    tosc_message_argument *argB = &b->args[i];
+    tosc_message_argument *argA = &a->args.items[i];
+    tosc_message_argument *argB = &b->args.items[i];
 
     if (argA->argType != argB->argType)
     {
@@ -512,7 +507,7 @@ bool tosc_messageBuilderEqualsMessage(tosc_message_builder *builder, tosc_messag
 
   const char *msgFormat = tosc_getFormat(msg);
   uint32_t messageArgCount = strlen(msgFormat);
-  if (builder->argCount != messageArgCount)
+  if (builder->args.count != messageArgCount)
   {
     return false;
   }
@@ -525,8 +520,8 @@ bool tosc_messageBuilderEqualsMessage(tosc_message_builder *builder, tosc_messag
     case 'i':
     {
       int32_t nextInt = tosc_getNextInt32(msg);
-      if (builder->args[i].argType != TOSC_ARGUMENT_INT32 ||
-          builder->args[i].argValue.asInt != nextInt)
+      if (builder->args.items[i].argType != TOSC_ARGUMENT_INT32 ||
+          builder->args.items[i].argValue.asInt != nextInt)
       {
         goto defer_false;
       }
@@ -535,8 +530,8 @@ bool tosc_messageBuilderEqualsMessage(tosc_message_builder *builder, tosc_messag
     case 'f':
     {
       float nextFloat = tosc_getNextFloat(msg);
-      if (builder->args[i].argType != TOSC_ARGUMENT_FLOAT ||
-          builder->args[i].argValue.asFloat != nextFloat)
+      if (builder->args.items[i].argType != TOSC_ARGUMENT_FLOAT ||
+          builder->args.items[i].argValue.asFloat != nextFloat)
       {
         goto defer_false;
       }
@@ -545,8 +540,8 @@ bool tosc_messageBuilderEqualsMessage(tosc_message_builder *builder, tosc_messag
     case 'd':
     {
       float nextDouble = tosc_getNextDouble(msg);
-      if (builder->args[i].argType != TOSC_ARGUMENT_DOUBLE ||
-          builder->args[i].argValue.asDouble != nextDouble)
+      if (builder->args.items[i].argType != TOSC_ARGUMENT_DOUBLE ||
+          builder->args.items[i].argValue.asDouble != nextDouble)
       {
         goto defer_false;
       }
@@ -555,8 +550,8 @@ bool tosc_messageBuilderEqualsMessage(tosc_message_builder *builder, tosc_messag
     case 's':
     {
       const char *nextString = tosc_getNextString(msg);
-      if (builder->args[i].argType != TOSC_ARGUMENT_STRING ||
-          strcmp(builder->args[i].argValue.asString, nextString) != 0)
+      if (builder->args.items[i].argType != TOSC_ARGUMENT_STRING ||
+          strcmp(builder->args.items[i].argValue.asString, nextString) != 0)
       {
         goto defer_false;
       }
@@ -577,10 +572,10 @@ defer_false:
 void tosc_messageBuilderPrint(tosc_message_builder *builder)
 {
   printf("Address: %s\n", builder->address);
-  printf("Arguments (%d):\n", builder->argCount);
-  for (int i = 0; i < builder->argCount; i++)
+  printf("Arguments (%lu):\n", builder->args.count);
+  for (int i = 0; i < builder->args.count; i++)
   {
-    tosc_message_argument *arg = &builder->args[i];
+    tosc_message_argument *arg = &builder->args.items[i];
     printf("\tArg %d: ", i + 1);
     switch (arg->argType)
     {
@@ -617,13 +612,13 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
   cursor = (cursor + 4) & ~0x3;
   buffer[cursor++] = ',';
 
-  int nArgs = builder->argCount;
+  int nArgs = builder->args.count;
   if (cursor + nArgs >= bufferLen)
     return -1;
 
   for (int i = 0; i < nArgs; ++i)
   {
-    tosc_message_argument *arg = &builder->args[i];
+    tosc_message_argument *arg = &builder->args.items[i];
     char argTypeChar;
 
     switch (arg->argType)
@@ -652,7 +647,7 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
 
   for (int i = 0; i < nArgs; ++i)
   {
-    tosc_message_argument *arg = &builder->args[i];
+    tosc_message_argument *arg = &builder->args.items[i];
     switch (arg->argType)
     {
     case TOSC_ARGUMENT_INT32:
@@ -698,4 +693,9 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
   }
 
   return cursor;
+}
+
+void tosc_messageBuilderFree(tosc_message_builder *builder)
+{
+  vec_free(builder->args);
 }

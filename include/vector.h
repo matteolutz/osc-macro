@@ -44,11 +44,11 @@
     struct                 \
     {                      \
         type *items;       \
-        size_t size;       \
+        size_t count;      \
         size_t capacity;   \
     } name
 
-#define vector_reserve(vec, expected_capacity)                                                 \
+#define vec_reserve(vec, expected_capacity)                                                    \
     do                                                                                         \
     {                                                                                          \
         if ((expected_capacity) > (vec)->capacity)                                             \

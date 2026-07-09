@@ -52,14 +52,12 @@ typedef struct osc_macro
 {
   osc_snippet trigger;
 
-  osc_macro_response responses[OSC_MACRO_RESPONSES_CAPACITY];
-  uint32_t responses_count;
+  VECTOR(osc_macro_response, responses);
 } osc_macro;
 
 typedef struct osc_macro_collection
 {
-  osc_macro macros[OSC_MAX_MACROS];
-  uint32_t macro_count;
+  VECTOR(osc_macro, macros);
 } osc_macro_collection;
 
 /**
@@ -118,5 +116,9 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
  * Returns a pointer to the found macro or NULL if no matching macro was found.
  */
 osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_message *trigger_message);
+
+void free_osc_macro_response(osc_macro_response *response);
+void free_osc_macro(osc_macro *macro);
+void free_osc_macro_collection(osc_macro_collection *collection);
 
 #endif // OSC_SNIPPET_H

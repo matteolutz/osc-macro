@@ -2,6 +2,8 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "vector.h"
+
 char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
 {
   if (*snippet != '/')
@@ -133,15 +135,14 @@ char *parse_osc_macro(char *macro, osc_macro *out_macro)
       macro++; // skip whitespace
     }
 
-    osc_snippet response = {0};
-    if (!(macro = parse_osc_snippet(macro, &response)))
+    osc_snippet osc_response = {0};
+    if (!(macro = parse_osc_snippet(macro, &osc_response)))
     {
       return NULL; // failed to parse response
     }
 
-    out_macro->responses[out_macro->responses_count].type = OSC_MACRO_RESPONSE_TYPE_OSC;
-    out_macro->responses[out_macro->responses_count].response.as_osc = response;
-    out_macro->responses_count++;
+    osc_macro_response response = {.type = OSC_MACRO_RESPONSE_TYPE_OSC, .response.as_osc = osc_response};
+    vec_push(&out_macro->responses, response);
 
     // look for the next newline
     char *next_newline = strchr(macro, '\n');
@@ -160,7 +161,7 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
 {
   char *cursor = macro_collection;
 
-  while (*cursor != 0 && out_macro_collection->macro_count < OSC_MAX_MACROS)
+  while (*cursor != 0)
   {
     // skip any whitespaces or newlines
     if (*cursor == ' ' || *cursor == '\n')
@@ -175,7 +176,7 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
       return NULL;
     }
 
-    out_macro_collection->macros[out_macro_collection->macro_count++] = macro;
+    vec_push(&out_macro_collection->macros, macro);
   }
 
   return cursor;
@@ -183,13 +184,48 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
 
 osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_message *trigger_message)
 {
-  for (int i = 0; i < collection->macro_count; ++i)
+  for (int i = 0; i < collection->macros.count; ++i)
   {
-    osc_macro *macro = &collection->macros[i];
+    osc_macro *macro = &collection->macros.items[i];
     if (tosc_messageBuilderEqualsMessage(&macro->trigger.message_builder, trigger_message))
     {
       return macro;
     }
   }
   return NULL;
+}
+
+void free_osc_macro_response(osc_macro_response *response)
+{
+  switch (response->type)
+  {
+  case OSC_MACRO_RESPONSE_TYPE_OSC:
+    tosc_messageBuilderFree(&response->response.as_osc.message_builder);
+    break;
+  case OSC_MACRO_RESPONSE_TYPE_FACTORY:
+    vec_free(response->response.as_factory.args);
+    break;
+  default:
+    break;
+  }
+}
+
+void free_osc_macro(osc_macro *macro)
+{
+  for (int i = 0; i < macro->responses.count; ++i)
+  {
+    free_osc_macro_response(&macro->responses.items[i]);
+  }
+
+  vec_free(macro->responses);
+}
+
+void free_osc_macro_collection(osc_macro_collection *collection)
+{
+  for (int i = 0; i < collection->macros.count; ++i)
+  {
+    free_osc_macro(&collection->macros.items[i]);
+  }
+
+  vec_free(collection->macros);
 }

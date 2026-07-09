@@ -56,23 +56,24 @@ failed:
 void handle_trigger(osc_macro *macro, int socket_fd, struct sockaddr_in *client_address, char *send_buffer, size_t send_buffer_size)
 {
   client_address->sin_port = htons(2223); // send to port 2223
-  printf("Sending %d responses to: %s:%d\n", macro->responses_count, inet_ntoa(client_address->sin_addr), ntohs(client_address->sin_port));
+  printf("Sending %lu responses to: %s:%d\n", macro->responses.count, inet_ntoa(client_address->sin_addr), ntohs(client_address->sin_port));
 
-  for (int i = 0; i < macro->responses_count; ++i)
+  for (int i = 0; i < macro->responses.count; ++i)
   {
     printf("\nSending response %d:\n", i + 1);
 
     tosc_message_builder factory_builder = {0};
     tosc_message_builder *builder_ref = &factory_builder;
 
-    switch (macro->responses[i].type)
+    switch (macro->responses.items[i].type)
     {
     case OSC_MACRO_RESPONSE_TYPE_OSC:
-      builder_ref = &macro->responses[i].response.as_osc.message_builder;
+      builder_ref = &macro->responses.items[i].response.as_osc.message_builder;
       break;
     case OSC_MACRO_RESPONSE_TYPE_FACTORY:
     {
-      osc_macro_response_factory *factory = &macro->responses[i].response.as_factory;
+      osc_macro_response_factory *factory = &macro->responses.items[i].response.as_factory;
+      (void)factory;
       // factory->callback(builder_ref, factory->args, factory->arg_count);
       break;
     }
@@ -84,6 +85,8 @@ void handle_trigger(osc_macro *macro, int socket_fd, struct sockaddr_in *client_
     tosc_messageBuilderPrint(builder_ref);
 
     uint32_t bytes_written = tosc_messageBuilderBuild(builder_ref, send_buffer, send_buffer_size);
+    tosc_messageBuilderFree(builder_ref); // free the builder after building the message
+
     if (bytes_written == 0)
     {
       printf("Failed to build response %d\n", i + 1);
@@ -107,8 +110,6 @@ void handle_trigger(osc_macro *macro, int socket_fd, struct sockaddr_in *client_
 
 int main(int argc, char *argv[])
 {
-  printf("sizeof(osc_macro_response) = %d\n", sizeof(osc_macro_response));
-
   if (argc < 2)
   {
     printf("Usage: %s <osc-macro-file>\n", argv[0]);
@@ -185,6 +186,7 @@ int main(int argc, char *argv[])
   return 0;
 
 panic:
+  free_osc_macro_collection(&macro_collection);
   free(osc_macro_file);
   return 1;
 }
