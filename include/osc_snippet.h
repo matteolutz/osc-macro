@@ -63,6 +63,28 @@ char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet);
  */
 char *parse_osc_macro(char *macro, osc_macro *out_macro);
 
+/**
+ * Parse a collection of OSC macros.
+ * An OSC macro collection is a list of macros separated by newlines.
+ * Any whitespace or newlines before the first macro, in between macros, or after the last macro is ignored.
+ *
+ * The maximum number of macros is defined by OSC_MAX_MACROS. To change this value,
+ * define OSC_MAX_MACROS before including osc_snippet.h.
+ *
+ * This function derives substrings from the given snippet so the char*
+ * passed to it has to be mutable in order to 0-terminate the substrings.
+ *
+ * Returns a pointer to the first character after the last macro of the collection or NULL if parsing failed.
+ */
 char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *out_macro_collection);
+
+/**
+ * Find a macro in the given collection that has a trigger message equal to the given trigger_message.
+ *
+ * This will not consume the `tosc_message`, because it internally calls `tosc_reset`.
+ *
+ * Returns a pointer to the found macro or NULL if no matching macro was found.
+ */
+osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_message *trigger_message);
 
 #endif // OSC_SNIPPET_H

@@ -176,3 +176,16 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
 
   return cursor;
 }
+
+osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_message *trigger_message)
+{
+  for (int i = 0; i < collection->macro_count; ++i)
+  {
+    osc_macro *macro = &collection->macros[i];
+    if (tosc_messageBuilderEqualsMessage(&macro->trigger.message_builder, trigger_message))
+    {
+      return macro;
+    }
+  }
+  return NULL;
+}
