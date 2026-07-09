@@ -503,6 +503,106 @@ bool tosc_messageBuilderEquals(tosc_message_builder *a, tosc_message_builder *b)
   return true;
 }
 
+bool tosc_messageBuilderEqualsMessage(tosc_message_builder *builder, tosc_message *msg)
+{
+  if (strcmp(builder->address, tosc_getAddress(msg)) != 0)
+  {
+    return false;
+  }
+
+  const char *msgFormat = tosc_getFormat(msg);
+  uint32_t messageArgCount = strlen(msgFormat);
+  if (builder->argCount != messageArgCount)
+  {
+    return false;
+  }
+
+  for (int i = 0; i < messageArgCount; ++i)
+  {
+    char formatChar = msgFormat[i];
+    switch (formatChar)
+    {
+    case 'i':
+    {
+      int32_t nextInt = tosc_getNextInt32(msg);
+      if (builder->args[i].argType != TOSC_ARGUMENT_INT32 ||
+          builder->args[i].argValue.asInt != nextInt)
+      {
+        goto defer_false;
+      }
+      break;
+    }
+    case 'f':
+    {
+      float nextFloat = tosc_getNextFloat(msg);
+      if (builder->args[i].argType != TOSC_ARGUMENT_FLOAT ||
+          builder->args[i].argValue.asFloat != nextFloat)
+      {
+        goto defer_false;
+      }
+      break;
+    }
+    case 'd':
+    {
+      float nextDouble = tosc_getNextDouble(msg);
+      if (builder->args[i].argType != TOSC_ARGUMENT_DOUBLE ||
+          builder->args[i].argValue.asDouble != nextDouble)
+      {
+        goto defer_false;
+      }
+      break;
+    }
+    case 's':
+    {
+      const char *nextString = tosc_getNextString(msg);
+      if (builder->args[i].argType != TOSC_ARGUMENT_STRING ||
+          strcmp(builder->args[i].argValue.asString, nextString) != 0)
+      {
+        goto defer_false;
+      }
+      break;
+    }
+    default:
+      goto defer_false; // unhandled format type
+    }
+  }
+
+  return true;
+
+defer_false:
+  tosc_reset(msg);
+  return false;
+}
+
+void tosc_messageBuilderPrint(tosc_message_builder *builder)
+{
+  printf("Address: %s\n", builder->address);
+  printf("Arguments (%d):\n", builder->argCount);
+  for (int i = 0; i < builder->argCount; i++)
+  {
+    tosc_message_argument *arg = &builder->args[i];
+    printf("\tArg %d: ", i + 1);
+    switch (arg->argType)
+    {
+    case TOSC_ARGUMENT_STRING:
+      printf("\"%s\"", arg->argValue.asString);
+      break;
+    case TOSC_ARGUMENT_INT32:
+      printf("%di", arg->argValue.asInt);
+      break;
+    case TOSC_ARGUMENT_FLOAT:
+      printf("%ff", arg->argValue.asFloat);
+      break;
+    case TOSC_ARGUMENT_DOUBLE:
+      printf("%lfd", arg->argValue.asDouble);
+      break;
+    default:
+      break;
+    }
+    printf("\n");
+  }
+}
+
 uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
                                   const int bufferLen)
 {

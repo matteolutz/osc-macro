@@ -256,6 +256,21 @@ extern "C"
   bool tosc_messageBuilderEquals(tosc_message_builder *a, tosc_message_builder *b);
 
   /**
+   * Compares a message builder with a parsed OSC message for equality.
+   * Returns true if they are equal, false otherwise.
+   *
+   * The conditions for equality are the same as for comparing two message builders.
+   * See `tosc_messageBuilderEquals()` for details.
+   */
+  bool tosc_messageBuilderEqualsMessage(tosc_message_builder *builder, tosc_message *msg);
+
+  /**
+   * Prints the contents of a message builder to stdout for debugging purposes.
+   * The output includes the address and all arguments with their types and values.
+   */
+  void tosc_messageBuilderPrint(tosc_message_builder *builder);
+
+  /**
    * Builds an OSC message from the given message builder and writes it to the provided buffer.
    * Returns the number of bytes written to the buffer, or a negative error code if an
    * error occurred (e.g., buffer too small, invalid argument type).
