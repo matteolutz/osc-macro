@@ -8,6 +8,24 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+bool response_factory__echo(tosc_message_builder *builder, tosc_message_argument args[], size_t arg_count)
+{
+  if (arg_count < 1)
+    return false;
+
+  tosc_message_argument address_arg = args[0];
+  if (address_arg.argType != TOSC_ARGUMENT_STRING)
+    return false;
+
+  builder->address = address_arg.argValue.asString;
+  for (size_t i = 1; i < arg_count; ++i)
+  {
+    tosc_messageBuilderAppend(builder, args[i]);
+  }
+
+  return true;
+}
+
 /**
  * Read the entire file into a heap allocated buffer and return a pointer to it.
  * The caller is responsible for freeing the buffer.
@@ -81,7 +99,12 @@ void handle_trigger(osc_macro_collection *macro_collection, osc_macro *macro, in
         continue;
       }
 
-      factory->callback(builder_ref, invocation->args.items, invocation->args.count);
+      bool factory_result = factory->callback(&factory_builder, invocation->args.items, invocation->args.count);
+      if (!factory_result)
+      {
+        printf("Response factory '%s' failed to build response\n", invocation->name);
+        continue;
+      }
       break;
     }
     default:
@@ -139,7 +162,7 @@ int main(int argc, char *argv[])
     goto panic;
   }
 
-  register_macro_response_factory(&macro_collection, "test", NULL);
+  register_macro_response_factory(&macro_collection, "echo", response_factory__echo);
 
   char recv_buffer[2048];
   char send_buffer[2048];

@@ -4,22 +4,12 @@
 
 #include "vector.h"
 
-char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
+static char *parse_message_builder_args(char *cursor, tosc_message_builder *builder)
 {
-  if (*snippet != '/')
-    return NULL; // snippet has to start with osc adress
-
-  char *eoa = strchr(snippet, '(');
-  if (eoa == NULL)
-    return NULL; // snippet has to have "("
-
-  char *cursor = eoa + 1;
   while (*cursor != ')')
   {
     if (*cursor == 0)
-    {
       return NULL; // unexpected EOF
-    }
 
     if (*cursor == ' ')
     {
@@ -37,7 +27,7 @@ char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
         return NULL; // string must be terminated
 
       *endOfString = 0; // null terminate the string
-      tosc_messageBuilderAppendString(&out_snippet->message_builder, cursor);
+      tosc_messageBuilderAppendString(builder, cursor);
 
       cursor = endOfString + 1;
     }
@@ -56,7 +46,7 @@ char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
       if (*cursor != '.')
       {
         // it isn't a float or double so let's jsut append it
-        tosc_messageBuilderAppendInt(&out_snippet->message_builder, i_val);
+        tosc_messageBuilderAppendInt(builder, i_val);
         continue;
       }
 
@@ -78,11 +68,11 @@ char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
       if (*cursor == 'f')
       {
         float f_val = (float)float_or_double;
-        tosc_messageBuilderAppendFloat(&out_snippet->message_builder, f_val);
+        tosc_messageBuilderAppendFloat(builder, f_val);
       }
       else if (*cursor == 'd')
       {
-        tosc_messageBuilderAppendDouble(&out_snippet->message_builder, float_or_double);
+        tosc_messageBuilderAppendDouble(builder, float_or_double);
       }
       else
       {
@@ -92,6 +82,23 @@ char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
       cursor++; // skip over 'f' or 'd'
     }
   }
+
+  return cursor;
+}
+
+char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
+{
+  if (*snippet != '/')
+    return NULL; // snippet has to start with osc adress
+
+  char *eoa = strchr(snippet, '(');
+  if (eoa == NULL)
+    return NULL; // snippet has to have "("
+
+  char *cursor = eoa + 1;
+  cursor = parse_message_builder_args(cursor, &out_snippet->message_builder);
+  if (cursor == NULL)
+    return NULL;
 
   *eoa = 0; // null terminate the end of address
   out_snippet->message_builder.address = snippet;
@@ -135,18 +142,41 @@ char *parse_osc_macro(char *macro, osc_macro *out_macro)
       macro++; // skip whitespace
     }
 
-    // TODO: parsing of response factories
-    // if the lines, doesn't start with a "/",
-    // it is used as a factory
-
-    osc_snippet osc_response = {0};
-    if (!(macro = parse_osc_snippet(macro, &osc_response)))
+    if (*macro == '/')
     {
-      return NULL; // failed to parse response
-    }
+      osc_snippet osc_response = {0};
+      if (!(macro = parse_osc_snippet(macro, &osc_response)))
+      {
+        return NULL; // failed to parse response
+      }
 
-    osc_macro_response response = {.type = OSC_MACRO_RESPONSE_TYPE_OSC, .response.as_osc = osc_response};
-    vec_push(&out_macro->responses, response);
+      osc_macro_response response = {.type = OSC_MACRO_RESPONSE_TYPE_OSC, .response.as_osc = osc_response};
+      vec_push(&out_macro->responses, response);
+    }
+    else
+    {
+      // parse factory invocation
+      char *start_of_name = macro;
+      char *end_of_name = strchr(macro, '(');
+      if (end_of_name == NULL)
+        return NULL; // factory invocation has to have "("
+
+      *end_of_name = '\0';
+
+      macro = end_of_name + 1;
+      tosc_message_builder builder = {0};
+      macro = parse_message_builder_args(macro, &builder);
+      if (macro == NULL)
+        return NULL;
+
+      macro++; // skip the ')'
+
+      osc_macro_response response = {
+          .type = OSC_MACRO_RESPONSE_TYPE_FACTORY,
+          .response.as_factory.name = start_of_name,
+          .response.as_factory.args = vec_move(builder.args)};
+      vec_push(&out_macro->responses, response);
+    }
 
     // look for the next newline
     char *next_newline = strchr(macro, '\n');
@@ -199,7 +229,7 @@ osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_
   return NULL;
 }
 
-void register_macro_response_factory(osc_macro_collection *collection, const char *name, void (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], uint32_t arg_count))
+void register_macro_response_factory(osc_macro_collection *collection, const char *name, bool (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], size_t arg_count))
 {
   osc_response_factory factory = {.name = name, .callback = callback};
   vec_push(&collection->response_factories, factory);

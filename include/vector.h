@@ -101,4 +101,9 @@
 #define vec_first(vec) (vec)->items[(VEC_ASSERT((vec)->count > 0), 0)]
 #define vec_last(vec) (vec)->items[(VEC_ASSERT((vec)->count > 0), (vec)->count - 1)]
 
+#define vec_move(src) {   \
+    .items = (src).items, \
+    .count = (src).count, \
+    .capacity = (src).capacity}
+
 #endif // _VECTOR_H
