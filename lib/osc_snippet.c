@@ -133,10 +133,14 @@ char *parse_osc_macro(char *macro, osc_macro *out_macro)
       macro++; // skip whitespace
     }
 
-    if (!(macro = parse_osc_snippet(macro, &out_macro->responses[out_macro->responses_count])))
+    osc_snippet response = {0};
+    if (!(macro = parse_osc_snippet(macro, &response)))
     {
       return NULL; // failed to parse response
     }
+
+    out_macro->responses[out_macro->responses_count].type = OSC_MACRO_RESPONSE_TYPE_OSC;
+    out_macro->responses[out_macro->responses_count].response.as_osc = response;
     out_macro->responses_count++;
 
     // look for the next newline

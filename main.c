@@ -61,9 +61,29 @@ void handle_trigger(osc_macro *macro, int socket_fd, struct sockaddr_in *client_
   for (int i = 0; i < macro->responses_count; ++i)
   {
     printf("\nSending response %d:\n", i + 1);
-    tosc_messageBuilderPrint(&macro->responses[i].message_builder);
 
-    uint32_t bytes_written = tosc_messageBuilderBuild(&macro->responses[i].message_builder, send_buffer, send_buffer_size);
+    tosc_message_builder factory_builder = {0};
+    tosc_message_builder *builder_ref = &factory_builder;
+
+    switch (macro->responses[i].type)
+    {
+    case OSC_MACRO_RESPONSE_TYPE_OSC:
+      builder_ref = &macro->responses[i].response.as_osc.message_builder;
+      break;
+    case OSC_MACRO_RESPONSE_TYPE_FACTORY:
+    {
+      osc_macro_response_factory *factory = &macro->responses[i].response.as_factory;
+      // factory->callback(builder_ref, factory->args, factory->arg_count);
+      break;
+    }
+    default:
+      printf("Unknown response type for response %d\n", i + 1);
+      continue;
+    }
+
+    tosc_messageBuilderPrint(builder_ref);
+
+    uint32_t bytes_written = tosc_messageBuilderBuild(builder_ref, send_buffer, send_buffer_size);
     if (bytes_written == 0)
     {
       printf("Failed to build response %d\n", i + 1);
@@ -87,6 +107,8 @@ void handle_trigger(osc_macro *macro, int socket_fd, struct sockaddr_in *client_
 
 int main(int argc, char *argv[])
 {
+  printf("sizeof(osc_macro_response) = %d\n", sizeof(osc_macro_response));
+
   if (argc < 2)
   {
     printf("Usage: %s <osc-macro-file>\n", argv[0]);

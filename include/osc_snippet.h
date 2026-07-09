@@ -1,12 +1,18 @@
 #ifndef OSC_SNIPPET_H
 #define OSC_SNIPPET_H
 
+#include "vector.h"
+
 #ifndef OSC_MACRO_RESPONSES_CAPACITY
 #define OSC_MACRO_RESPONSES_CAPACITY 8
 #endif
 
 #ifndef OSC_MAX_MACROS
 #define OSC_MAX_MACROS 16
+#endif
+
+#ifndef OSC_MAX_RESPONSE_FACTORY_ARGS
+#define OSC_MAX_RESPONSE_FACTORY_ARGS 8
 #endif
 
 #include "tinyosc.h"
@@ -16,11 +22,37 @@ typedef struct osc_snippet
   tosc_message_builder message_builder;
 } osc_snippet;
 
+typedef enum osc_macro_response_type
+{
+  OSC_MACRO_RESPONSE_TYPE_OSC,
+  OSC_MACRO_RESPONSE_TYPE_FACTORY
+} osc_macro_response_type;
+
+typedef struct osc_macro_response_factory
+{
+  void (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], uint32_t arg_count);
+
+  // those args are not actually directly used by tosc,
+  // but are passed to the callback function so it can use them to build the response message
+  VECTOR(tosc_message_argument, args);
+} osc_macro_response_factory;
+
+typedef struct osc_macro_response
+{
+  osc_macro_response_type type;
+
+  union
+  {
+    osc_snippet as_osc;
+    osc_macro_response_factory as_factory;
+  } response;
+} osc_macro_response;
+
 typedef struct osc_macro
 {
   osc_snippet trigger;
 
-  osc_snippet responses[OSC_MACRO_RESPONSES_CAPACITY];
+  osc_macro_response responses[OSC_MACRO_RESPONSES_CAPACITY];
   uint32_t responses_count;
 } osc_macro;
 
