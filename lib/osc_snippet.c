@@ -151,3 +151,28 @@ char *parse_osc_macro(char *macro, osc_macro *out_macro)
 
   return macro;
 }
+
+char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *out_macro_collection)
+{
+  char *cursor = macro_collection;
+
+  while (*cursor != 0 && out_macro_collection->macro_count < OSC_MAX_MACROS)
+  {
+    // skip any whitespaces or newlines
+    if (*cursor == ' ' || *cursor == '\n')
+    {
+      cursor++;
+      continue;
+    }
+
+    osc_macro macro = {0};
+    if (!(cursor = parse_osc_macro(cursor, &macro)))
+    {
+      return NULL;
+    }
+
+    out_macro_collection->macros[out_macro_collection->macro_count++] = macro;
+  }
+
+  return cursor;
+}

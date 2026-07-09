@@ -5,6 +5,10 @@
 #define OSC_MACRO_RESPONSES_CAPACITY 8
 #endif
 
+#ifndef OSC_MAX_MACROS
+#define OSC_MAX_MACROS 16
+#endif
+
 #include "tinyosc.h"
 
 typedef struct osc_snippet
@@ -19,6 +23,12 @@ typedef struct osc_macro
   osc_snippet responses[OSC_MACRO_RESPONSES_CAPACITY];
   uint32_t responses_count;
 } osc_macro;
+
+typedef struct osc_macro_collection
+{
+  osc_macro macros[OSC_MAX_MACROS];
+  uint32_t macro_count;
+} osc_macro_collection;
 
 /**
  * Parse an OSC snippet in the form of
@@ -52,5 +62,7 @@ char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet);
  * Returns a pointer to the first character after the last response of the macro or NULL if parsing failed.
  */
 char *parse_osc_macro(char *macro, osc_macro *out_macro);
+
+char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *out_macro_collection);
 
 #endif // OSC_SNIPPET_H
