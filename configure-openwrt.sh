@@ -22,6 +22,7 @@ mv *.c *.h src/ 2>/dev/null
 # Move include/ and lib/ dirs to src
 mv include src/
 mv lib src/
+mv factories src/
 
 # Move Makefile to src
 mv Makefile src/
