@@ -112,11 +112,3 @@ This project incorporates code from:
 > [matteolutz.de](https://matteolutz.de) &nbsp;&middot;&nbsp;
 > GitHub [@matteolutz](https://github.com/matteolutz) &nbsp;&middot;&nbsp;
 > Email [info@matteolutz.de](mailto:info@matteolutz.de)
-
-```
-
-```
-
-```
-
-```
