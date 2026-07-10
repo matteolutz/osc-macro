@@ -69,34 +69,34 @@ As mentioned above, you can build the package for OpenWRT with the default targe
 
 2. After downloading and extracting the SDK, navigate to the SDK root directory and copy the `osc-macro` repository into the `package` directory. Inside the respository then run
 
-```sh
-./configure-openwrt.sh
-```
+   ```sh
+   ./configure-openwrt.sh
+   ```
 
-to make a build environment for the OpenWRT SDK.
+   to make a build environment for the OpenWRT SDK.
 
 3. From the SDK root directory, run the following commands to update the package feeds and build the package:
 
-```sh
-./scripts/feeds update -a
-./scripts/feeds install -a
-make defcofig
-make package/osc-macro/compile V=s
-```
+   ```sh
+   ./scripts/feeds update -a
+   ./scripts/feeds install -a
+   make defcofig
+   make package/osc-macro/compile V=s
+   ```
 
 4. The resulting `.ipk` or `.apk` file will be located in the `bin/packages/<architecture>/base/osc-macro_<version>-<architecture>.<ipk|apk>` directory.
 
 5. You can then transfer this file to your OpenWRT device (e.g. using `scp`) and install it using the `opkg` or `apk` package manager:
 
-```sh
-opkg install /path/to/osc-macro_<version>-<architecture>.ipk
-```
+   ```sh
+   opkg install /path/to/osc-macro_<version>-<architecture>.ipk
+   ```
 
-or
+   or
 
-```sh
-apk add --allow-untrusted /path/to/osc-macro_<version>-<architecture>.apk
-```
+   ```sh
+   apk add --allow-untrusted /path/to/osc-macro_<version>-<architecture>.apk
+   ```
 
 ## Acknowledgements
 
