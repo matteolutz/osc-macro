@@ -6,7 +6,7 @@ LIB_SRC = lib/tinyosc.c lib/osc_snippet.c factories/*.c
 all: osc-macro
 
 osc-macro: main.c $(LIB_SRC)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -I include/ -Wall -o osc-macro $^ $(LDLIBS) $(RT_LIB)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -I include/ -Wall -Wextra -o osc-macro $^ $(LDLIBS) $(RT_LIB)
 
 # ---------- Local Dev Recipes ----------
 dev: RT_LIB =

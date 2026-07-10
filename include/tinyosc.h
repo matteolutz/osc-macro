@@ -71,13 +71,15 @@ extern "C"
       float asFloat;
       double asDouble;
 
+      /** Non owned */
       const char *asString;
     } argValue;
   } tosc_message_argument;
 
   typedef struct tosc_message_builder
   {
-    const char *address;
+    /** Owned string, freed by tosc_message_builder */
+    char *address;
 
     VECTOR(tosc_message_argument, args);
   } tosc_message_builder;
@@ -228,10 +230,12 @@ extern "C"
 
   /**
    * Initializes a already allocated message builder with the given OSC address.
-   * This function should be called before any functions are used on the message
-   * builder struct.
+   *
+   * This function allocates memory for the address string, which will be freed when
+   * `tosc_messageBuilderFree()` is called on the message builder. Calling this function
+   * multiple times on the same message builder without freeing it first will result in a memory leak.
    */
-  void tosc_messageBuilderInit(tosc_message_builder *builder, const char *address);
+  void tosc_messageBuilderSetAddress(tosc_message_builder *builder, const char *address);
 
   /**
    * Append an argument to the message builder. Returns true if successful, false

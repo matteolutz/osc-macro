@@ -400,10 +400,10 @@ void tosc_printMessage(tosc_message *osc)
   printf("\n");
 }
 
-void tosc_messageBuilderInit(tosc_message_builder *builder,
-                             const char *address)
+void tosc_messageBuilderSetAddress(tosc_message_builder *builder,
+                                   const char *address)
 {
-  builder->address = address;
+  builder->address = strdup(address);
 }
 
 bool tosc_messageBuilderAppend(tosc_message_builder *builder,
@@ -697,6 +697,9 @@ uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer,
 
 void tosc_messageBuilderFree(tosc_message_builder *builder)
 {
+  free(builder->address);
+  builder->address = NULL;
+
   vec_free(builder->args);
 }
 
@@ -708,7 +711,7 @@ void tosc_messageBatchAddBuilder(tosc_message_batch *batch, tosc_message_builder
 void tosc_messageBatchAdd(tosc_message_batch *batch, const char *address, const char *format, ...)
 {
   tosc_message_builder builder = {0};
-  tosc_messageBuilderInit(&builder, address);
+  tosc_messageBuilderSetAddress(&builder, address);
 
   va_list ap;
   va_start(ap, format);

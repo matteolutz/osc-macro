@@ -1,6 +1,7 @@
 #include "osc_macro_factory_registration.h"
 
 #include <string.h>
+#include <stdio.h>
 
 /** Usage: wing_talk_to_single_bus("A|B" <bus_id>) */
 static bool response_factory__wing_talk_to_single_bus(tosc_message_batch *batch, tosc_message_argument args[], size_t arg_count)
@@ -31,13 +32,28 @@ static bool response_factory__wing_talk_to_single_bus(tosc_message_batch *batch,
         return false; // The Behringer WING only has 16 busses
     }
 
+    char address_buffer[20];
+
     for (uint32_t i = 1; i <= 16; ++i)
     {
-        // tosc_messageBatchAdd(batch, strdup())
-    }
+        // Busses
+        snprintf(address_buffer, sizeof(address_buffer), "%s/B%d", address_prefix, i);
+        tosc_messageBatchAdd(batch, address_buffer, "i", (i == bus_id) ? 1 : 0);
 
-    tosc_messageBatchAdd(batch, "/test/123", "fsi", 3.13, "hello", 42);
-    tosc_messageBatchAdd(batch, "/test/321", "iii", 1, 2, 3);
+        // Matrices
+        if (i <= 8)
+        {
+            snprintf(address_buffer, sizeof(address_buffer), "%s/MX%d", address_prefix, i);
+            tosc_messageBatchAdd(batch, address_buffer, "i", 0);
+        }
+
+        // Mains
+        if (i <= 4)
+        {
+            snprintf(address_buffer, sizeof(address_buffer), "%s/M%d", address_prefix, i);
+            tosc_messageBatchAdd(batch, address_buffer, "i", 0);
+        }
+    }
 
     return true;
 }

@@ -11,7 +11,7 @@ static bool response_factory__echo(tosc_message_batch *batch, tosc_message_argum
     if (address_arg.argType != TOSC_ARGUMENT_STRING)
         return false;
 
-    tosc_messageBuilderInit(&builder, address_arg.argValue.asString);
+    tosc_messageBuilderSetAddress(&builder, address_arg.argValue.asString);
     for (size_t i = 1; i < arg_count; ++i)
     {
         tosc_messageBuilderAppend(&builder, args[i]);

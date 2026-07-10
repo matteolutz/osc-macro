@@ -103,7 +103,7 @@ char *parse_osc_snippet(char *snippet, osc_snippet *out_snippet)
     return NULL;
 
   *eoa = 0; // null terminate the end of address
-  out_snippet->message_builder.address = snippet;
+  tosc_messageBuilderSetAddress(&out_snippet->message_builder, snippet);
 
   return cursor + 1;
 }
