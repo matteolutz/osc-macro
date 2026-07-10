@@ -70,7 +70,6 @@ void handle_trigger(osc_macro_collection *macro_collection, osc_macro *macro, in
       tosc_messageBuilderPrint(builder_ref);
 
       uint32_t bytes_written = tosc_messageBuilderBuild(builder_ref, send_buffer, send_buffer_size);
-      tosc_messageBuilderFree(builder_ref); // free the builder after building the message
 
       if (bytes_written == 0)
       {

@@ -10,3 +10,4 @@
 
 /channel/5/test()
 > wing_talk_to("A" "B1" "MX8" "M1")
+> /cfg/talk/A/$on(1)
