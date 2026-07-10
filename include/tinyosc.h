@@ -82,6 +82,11 @@ extern "C"
     VECTOR(tosc_message_argument, args);
   } tosc_message_builder;
 
+  typedef struct tosc_message_batch
+  {
+    VECTOR(tosc_message_builder, messages);
+  } tosc_message_batch;
+
   /**
    * Returns true if the buffer refers to a bundle of OSC messages. False
    * otherwise.
@@ -275,6 +280,11 @@ extern "C"
   uint32_t tosc_messageBuilderBuild(tosc_message_builder *builder, char *buffer, const int bufferLen);
 
   void tosc_messageBuilderFree(tosc_message_builder *builder);
+
+  void tosc_messageBatchAddBuilder(tosc_message_batch *batch, tosc_message_builder builder);
+  void tosc_messageBatchAdd(tosc_message_batch *batch, const char *address, const char *format, ...);
+
+  void tosc_messageBatchFree(tosc_message_batch *batch);
 
 #ifdef __cplusplus
 }

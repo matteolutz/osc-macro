@@ -699,3 +699,49 @@ void tosc_messageBuilderFree(tosc_message_builder *builder)
 {
   vec_free(builder->args);
 }
+
+void tosc_messageBatchAddBuilder(tosc_message_batch *batch, tosc_message_builder builder)
+{
+  vec_push(&batch->messages, builder);
+}
+
+void tosc_messageBatchAdd(tosc_message_batch *batch, const char *address, const char *format, ...)
+{
+  tosc_message_builder builder;
+  tosc_messageBuilderInit(&builder, address);
+
+  va_list ap;
+  va_start(ap, format);
+  for (int i = 0; format[i] != '\0'; ++i)
+  {
+    switch (format[i])
+    {
+    case 'i':
+      tosc_messageBuilderAppendInt(&builder, va_arg(ap, int));
+      break;
+    case 'f':
+      tosc_messageBuilderAppendFloat(&builder, (float)va_arg(ap, double));
+      break;
+    case 'd':
+      tosc_messageBuilderAppendDouble(&builder, va_arg(ap, double));
+      break;
+    case 's':
+      tosc_messageBuilderAppendString(&builder, va_arg(ap, const char *));
+      break;
+    default:
+      break; // unhandled arg type
+    }
+  }
+  va_end(ap);
+
+  tosc_messageBatchAddBuilder(batch, builder);
+}
+
+void tosc_messageBatchFree(tosc_message_batch *batch)
+{
+  for (int i = 0; i < batch->messages.count; ++i)
+  {
+    tosc_messageBuilderFree(&batch->messages.items[i]);
+  }
+  vec_free(batch->messages);
+}
