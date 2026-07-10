@@ -101,5 +101,4 @@ static bool response_factory__wing_talk_to(tosc_message_batch *batch, tosc_messa
     return true;
 }
 
-OSC_REGISTER_MACRO_RESPONSE_FACTORY("wing_talk_to_single_bus", response_factory__wing_talk_to_single_bus);
 OSC_REGISTER_MACRO_RESPONSE_FACTORY("wing_talk_to", response_factory__wing_talk_to);
