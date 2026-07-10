@@ -1,4 +1,4 @@
-#include "osc_snippet.h"
+#include "osc_macro.h"
 #include "tinyosc.h"
 
 #include <stdio.h>
@@ -8,14 +8,14 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-typedef struct socket_client_ctx
+typedef struct socket_response_ctx
 {
   int socket_fd;
-  struct sockaddr_in *client_address;
+  struct sockaddr_in *response_address;
 
   char *send_buffer;
   size_t send_buffer_size;
-} socket_client_ctx;
+} socket_response_ctx;
 
 /**
  * Read the entire file into a heap allocated buffer and return a pointer to it.
@@ -66,7 +66,7 @@ failed:
  * Build and send an OSC message from the given message builder to the given socket client context.
  * Returns true if the message was built and sent successfully, false otherwise.
  */
-bool send_message_builder(tosc_message_builder *builder, socket_client_ctx *ctx)
+bool send_message_builder(tosc_message_builder *builder, socket_response_ctx *ctx)
 {
   tosc_messageBuilderPrint(builder);
 
@@ -80,7 +80,7 @@ bool send_message_builder(tosc_message_builder *builder, socket_client_ctx *ctx)
 
   printf("Response built: %d bytes\n", bytes_written);
 
-  int send_result = sendto(ctx->socket_fd, ctx->send_buffer, bytes_written, 0, (struct sockaddr *)ctx->client_address, sizeof(struct sockaddr_in));
+  int send_result = sendto(ctx->socket_fd, ctx->send_buffer, bytes_written, 0, (struct sockaddr *)ctx->response_address, sizeof(struct sockaddr_in));
   if (send_result < 0)
   {
     printf("failed to send response\n");
@@ -94,9 +94,9 @@ bool send_message_builder(tosc_message_builder *builder, socket_client_ctx *ctx)
 /**
  * Handle the given macro by sending all of its responses to the given socket client context.
  */
-void handle_trigger(osc_macro_collection *macro_collection, osc_macro *macro, socket_client_ctx *ctx)
+void handle_trigger(osc_macro_ctx *macro_ctx, osc_macro *macro, socket_response_ctx *ctx)
 {
-  printf("Sending %zu responses to: %s:%d\n", macro->responses.count, inet_ntoa(ctx->client_address->sin_addr), ntohs(ctx->client_address->sin_port));
+  printf("Sending %zu responses to: %s:%d\n", macro->responses.count, inet_ntoa(ctx->response_address->sin_addr), ntohs(ctx->response_address->sin_port));
 
   for (size_t i = 0; i < macro->responses.count; ++i)
   {
@@ -119,7 +119,7 @@ void handle_trigger(osc_macro_collection *macro_collection, osc_macro *macro, so
       tosc_message_batch message_batch = {0};
 
       osc_macro_factory_invocation *invocation = &macro->responses.items[i].response.as_factory;
-      osc_response_factory *factory = find_macro_response_factory(macro_collection, invocation->name);
+      osc_response_factory *factory = find_macro_response_factory(macro_ctx, invocation->name);
 
       if (factory == NULL)
       {
@@ -173,8 +173,8 @@ int main(int argc, char *argv[])
     return 1; // don't go to panic, this would mean calling free on a NULL pointer
   }
 
-  osc_macro_collection macro_collection = {0};
-  char *parse_success = parse_osc_macro_collection(osc_macro_file, &macro_collection);
+  osc_macro_ctx macro_ctx = {0};
+  char *parse_success = parse_osc_macro_collection(osc_macro_file, &macro_ctx);
 
   if (parse_success == NULL)
   {
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
     goto panic;
   }
 
-  load_registered_macro_response_factories(&macro_collection);
+  load_registered_macro_response_factories(&macro_ctx);
 
   char recv_buffer[2048];
   char send_buffer[2048];
@@ -225,20 +225,20 @@ int main(int argc, char *argv[])
     tosc_printMessage(&osc);
     tosc_reset(&osc); // tosc_printMessage doesn't reset the marker so we have to do it manually
 
-    osc_macro *triggered_macro = find_macro_by_trigger_message(&macro_collection, &osc);
+    osc_macro *triggered_macro = find_macro_by_trigger_message(&macro_ctx, &osc);
     if (triggered_macro == NULL)
       continue;
 
     client_address.sin_port = htons(2223); // send to port 2223
-    socket_client_ctx ctx = {
+    socket_response_ctx ctx = {
         .socket_fd = fd,
-        .client_address = &client_address,
+        .response_address = &client_address,
         .send_buffer = send_buffer,
         .send_buffer_size = sizeof(send_buffer),
     };
 
     printf("------------------------- found macro for trigger ------------------------\n");
-    handle_trigger(&macro_collection, triggered_macro, &ctx);
+    handle_trigger(&macro_ctx, triggered_macro, &ctx);
     printf("-------------------------- done handling trigger -------------------------\n");
   }
 
@@ -246,7 +246,7 @@ int main(int argc, char *argv[])
   return 0;
 
 panic:
-  free_osc_macro_collection(&macro_collection);
+  free_osc_macro_ctx(&macro_ctx);
   free(osc_macro_file);
   return 1;
 }

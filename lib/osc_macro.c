@@ -1,7 +1,7 @@
-#include "osc_snippet.h"
 #include <ctype.h>
 #include <string.h>
 
+#include "osc_macro.h"
 #include "vector.h"
 
 static VECTOR(osc_response_factory, registered_response_factories) = {0};
@@ -193,7 +193,7 @@ char *parse_osc_macro(char *macro, osc_macro *out_macro)
   return macro;
 }
 
-char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *out_macro_collection)
+char *parse_osc_macro_collection(char *macro_collection, osc_macro_ctx *out_macro_collection)
 {
   char *cursor = macro_collection;
 
@@ -218,7 +218,7 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
   return cursor;
 }
 
-osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_message *trigger_message)
+osc_macro *find_macro_by_trigger_message(osc_macro_ctx *collection, tosc_message *trigger_message)
 {
   for (size_t i = 0; i < collection->macros.count; ++i)
   {
@@ -231,7 +231,7 @@ osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_
   return NULL;
 }
 
-void register_macro_response_factory(osc_macro_collection *collection, const char *name, bool (*callback)(tosc_message_batch *out_message_batch, tosc_message_argument args[], size_t arg_count))
+void register_macro_response_factory(osc_macro_ctx *collection, const char *name, bool (*callback)(tosc_message_batch *out_message_batch, tosc_message_argument args[], size_t arg_count))
 {
   osc_response_factory factory = {.name = name, .callback = callback};
   vec_push(&collection->response_factories, factory);
@@ -243,7 +243,7 @@ void register_macro_response_factory_globally(const char *name, bool (*callback)
   vec_push(&registered_response_factories, factory);
 }
 
-void load_registered_macro_response_factories(osc_macro_collection *collection)
+void load_registered_macro_response_factories(osc_macro_ctx *collection)
 {
   for (size_t i = 0; i < registered_response_factories.count; ++i)
   {
@@ -267,7 +267,7 @@ void load_registered_macro_response_factories(osc_macro_collection *collection)
   }
 }
 
-osc_response_factory *find_macro_response_factory(osc_macro_collection *collection, const char *name)
+osc_response_factory *find_macro_response_factory(osc_macro_ctx *collection, const char *name)
 {
   for (size_t i = 0; i < collection->response_factories.count; ++i)
   {
@@ -306,7 +306,7 @@ void free_osc_macro(osc_macro *macro)
   vec_free(macro->responses);
 }
 
-void free_osc_macro_collection(osc_macro_collection *collection)
+void free_osc_macro_ctx(osc_macro_ctx *collection)
 {
   for (size_t i = 0; i < collection->macros.count; ++i)
   {

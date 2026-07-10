@@ -46,11 +46,11 @@ typedef struct osc_macro
   VECTOR(osc_macro_response, responses);
 } osc_macro;
 
-typedef struct osc_macro_collection
+typedef struct osc_macro_ctx
 {
   VECTOR(osc_macro, macros);
   VECTOR(osc_response_factory, response_factories);
-} osc_macro_collection;
+} osc_macro_ctx;
 
 /**
  * Parse an OSC snippet in the form of
@@ -98,7 +98,7 @@ char *parse_osc_macro(char *macro, osc_macro *out_macro);
  *
  * Returns a pointer to the first character after the last macro of the collection or NULL if parsing failed.
  */
-char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *out_macro_collection);
+char *parse_osc_macro_collection(char *macro_collection, osc_macro_ctx *out_macro_collection);
 
 /**
  * Find a macro in the given collection that has a trigger message equal to the given trigger_message.
@@ -107,15 +107,15 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
  *
  * Returns a pointer to the found macro or NULL if no matching macro was found.
  */
-osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_message *trigger_message);
+osc_macro *find_macro_by_trigger_message(osc_macro_ctx *collection, tosc_message *trigger_message);
 
-void register_macro_response_factory(osc_macro_collection *collection, const char *name, bool (*callback)(tosc_message_batch *out_message_batch, tosc_message_argument args[], size_t arg_count));
+void register_macro_response_factory(osc_macro_ctx *collection, const char *name, bool (*callback)(tosc_message_batch *out_message_batch, tosc_message_argument args[], size_t arg_count));
 void register_macro_response_factory_globally(const char *name, bool (*callback)(tosc_message_batch *out_message_batch, tosc_message_argument args[], size_t arg_count));
-void load_registered_macro_response_factories(osc_macro_collection *collection);
-osc_response_factory *find_macro_response_factory(osc_macro_collection *collection, const char *name);
+void load_registered_macro_response_factories(osc_macro_ctx *collection);
+osc_response_factory *find_macro_response_factory(osc_macro_ctx *collection, const char *name);
 
 void free_osc_macro_response(osc_macro_response *response);
 void free_osc_macro(osc_macro *macro);
-void free_osc_macro_collection(osc_macro_collection *collection);
+void free_osc_macro_ctx(osc_macro_ctx *collection);
 
 #endif // OSC_SNIPPET_H

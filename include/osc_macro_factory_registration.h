@@ -1,7 +1,7 @@
 #ifndef OSC_MACRO_FACTORY_REGISTRATION_H
 #define OSC_MACRO_FACTORY_REGISTRATION_H
 
-#include "osc_snippet.h"
+#include "osc_macro.h"
 
 #if defined(__clang__) || defined(__GNUC__)
 #define OSC_MACRO_CONSTRUCTOR __attribute__((constructor))
