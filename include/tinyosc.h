@@ -66,7 +66,7 @@ extern "C"
 
     union
     {
-      uint32_t asInt;
+      int32_t asInt;
 
       float asFloat;
       double asDouble;

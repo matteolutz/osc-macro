@@ -37,10 +37,10 @@ static char *parse_message_builder_args(char *cursor, tosc_message_builder *buil
     if (isdigit(*cursor))
     {
       // we have the start of a numeric value
-      int i_val = *cursor++ - '0';
+      int32_t i_val = *cursor++ - '0';
       while (*cursor != 0 && isdigit(*cursor))
       {
-        int digit = *cursor - '0';
+        int32_t digit = *cursor - '0';
         i_val = i_val * 10 + digit;
         cursor++;
       }
@@ -220,7 +220,7 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
 
 osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_message *trigger_message)
 {
-  for (int i = 0; i < collection->macros.count; ++i)
+  for (size_t i = 0; i < collection->macros.count; ++i)
   {
     osc_macro *macro = &collection->macros.items[i];
     if (tosc_messageBuilderEqualsMessage(&macro->trigger.message_builder, trigger_message))
@@ -245,12 +245,12 @@ void register_macro_response_factory_globally(const char *name, bool (*callback)
 
 void load_registered_macro_response_factories(osc_macro_collection *collection)
 {
-  for (int i = 0; i < registered_response_factories.count; ++i)
+  for (size_t i = 0; i < registered_response_factories.count; ++i)
   {
     osc_response_factory *candidate = &registered_response_factories.items[i];
 
     bool already_registered = false;
-    for (int j = 0; j < collection->response_factories.count; ++j)
+    for (size_t j = 0; j < collection->response_factories.count; ++j)
     {
       osc_response_factory *existing = &collection->response_factories.items[j];
       if (strcmp(existing->name, candidate->name) == 0)
@@ -269,7 +269,7 @@ void load_registered_macro_response_factories(osc_macro_collection *collection)
 
 osc_response_factory *find_macro_response_factory(osc_macro_collection *collection, const char *name)
 {
-  for (int i = 0; i < collection->response_factories.count; ++i)
+  for (size_t i = 0; i < collection->response_factories.count; ++i)
   {
     osc_response_factory *factory = &collection->response_factories.items[i];
     if (strcmp(factory->name, name) == 0)
@@ -298,7 +298,7 @@ void free_osc_macro_response(osc_macro_response *response)
 
 void free_osc_macro(osc_macro *macro)
 {
-  for (int i = 0; i < macro->responses.count; ++i)
+  for (size_t i = 0; i < macro->responses.count; ++i)
   {
     free_osc_macro_response(&macro->responses.items[i]);
   }
@@ -308,7 +308,7 @@ void free_osc_macro(osc_macro *macro)
 
 void free_osc_macro_collection(osc_macro_collection *collection)
 {
-  for (int i = 0; i < collection->macros.count; ++i)
+  for (size_t i = 0; i < collection->macros.count; ++i)
   {
     free_osc_macro(&collection->macros.items[i]);
   }

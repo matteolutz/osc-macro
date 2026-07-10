@@ -506,13 +506,13 @@ bool tosc_messageBuilderEqualsMessage(tosc_message_builder *builder, tosc_messag
   }
 
   const char *msgFormat = tosc_getFormat(msg);
-  uint32_t messageArgCount = strlen(msgFormat);
+  size_t messageArgCount = strlen(msgFormat);
   if (builder->args.count != messageArgCount)
   {
     return false;
   }
 
-  for (int i = 0; i < messageArgCount; ++i)
+  for (size_t i = 0; i < messageArgCount; ++i)
   {
     char formatChar = msgFormat[i];
     switch (formatChar)
@@ -573,10 +573,10 @@ void tosc_messageBuilderPrint(tosc_message_builder *builder)
 {
   printf("Address: %s\n", builder->address);
   printf("Arguments (%lu):\n", builder->args.count);
-  for (int i = 0; i < builder->args.count; i++)
+  for (size_t i = 0; i < builder->args.count; i++)
   {
     tosc_message_argument *arg = &builder->args.items[i];
-    printf("\tArg %d: ", i + 1);
+    printf("\tArg %zu: ", i + 1);
     switch (arg->argType)
     {
     case TOSC_ARGUMENT_STRING:
@@ -742,7 +742,7 @@ void tosc_messageBatchAdd(tosc_message_batch *batch, const char *address, const 
 
 void tosc_messageBatchFree(tosc_message_batch *batch)
 {
-  for (int i = 0; i < batch->messages.count; ++i)
+  for (size_t i = 0; i < batch->messages.count; ++i)
   {
     tosc_messageBuilderFree(&batch->messages.items[i]);
   }
