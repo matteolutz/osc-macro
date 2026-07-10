@@ -231,13 +231,13 @@ osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_
   return NULL;
 }
 
-void register_macro_response_factory(osc_macro_collection *collection, const char *name, bool (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], size_t arg_count))
+void register_macro_response_factory(osc_macro_collection *collection, const char *name, bool (*callback)(tosc_message_batch *out_message_batch, tosc_message_argument args[], size_t arg_count))
 {
   osc_response_factory factory = {.name = name, .callback = callback};
   vec_push(&collection->response_factories, factory);
 }
 
-void register_macro_response_factory_globally(const char *name, bool (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], size_t arg_count))
+void register_macro_response_factory_globally(const char *name, bool (*callback)(tosc_message_batch *out_message_batch, tosc_message_argument args[], size_t arg_count))
 {
   osc_response_factory factory = {.name = name, .callback = callback};
   vec_push(&registered_response_factories, factory);

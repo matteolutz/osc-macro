@@ -7,3 +7,6 @@
 
 /channel/3/test()
 > echo("/hello/world" 1 2 3.14f)
+
+/channel/4/test()
+> wing_talk_to_single_bus("A" 1)

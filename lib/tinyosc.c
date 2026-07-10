@@ -707,7 +707,7 @@ void tosc_messageBatchAddBuilder(tosc_message_batch *batch, tosc_message_builder
 
 void tosc_messageBatchAdd(tosc_message_batch *batch, const char *address, const char *format, ...)
 {
-  tosc_message_builder builder;
+  tosc_message_builder builder = {0};
   tosc_messageBuilderInit(&builder, address);
 
   va_list ap;

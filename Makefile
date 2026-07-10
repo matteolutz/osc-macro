@@ -1,7 +1,7 @@
 RT_LIB = -lrt
 CFLAGS = -Os
 
-LIB_SRC = lib/tinyosc.c lib/osc_snippet.c lib/osc_macro_factories.c
+LIB_SRC = lib/tinyosc.c lib/osc_snippet.c factories/*.c
 
 all: osc-macro
 

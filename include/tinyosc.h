@@ -82,6 +82,11 @@ extern "C"
     VECTOR(tosc_message_argument, args);
   } tosc_message_builder;
 
+  /**
+   * A batch of OSC messages that can be sent together.
+   *
+   * This struct is given ownership of the messages, so it is responsible for freeing them.
+   */
   typedef struct tosc_message_batch
   {
     VECTOR(tosc_message_builder, messages);

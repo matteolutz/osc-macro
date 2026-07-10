@@ -56,22 +56,44 @@ failed:
 void handle_trigger(osc_macro_collection *macro_collection, osc_macro *macro, int socket_fd, struct sockaddr_in *client_address, char *send_buffer, size_t send_buffer_size)
 {
   client_address->sin_port = htons(2223); // send to port 2223
-  printf("Sending %lu responses to: %s:%d\n", macro->responses.count, inet_ntoa(client_address->sin_addr), ntohs(client_address->sin_port));
+  printf("Sending %zu responses to: %s:%d\n", macro->responses.count, inet_ntoa(client_address->sin_addr), ntohs(client_address->sin_port));
 
-  for (int i = 0; i < macro->responses.count; ++i)
+  for (size_t i = 0; i < macro->responses.count; ++i)
   {
-    printf("\nSending response %d:\n", i + 1);
-
-    tosc_message_builder factory_builder = {0};
-    tosc_message_builder *builder_ref = &factory_builder;
+    printf("\nSending response %zu:\n", i + 1);
 
     switch (macro->responses.items[i].type)
     {
     case OSC_MACRO_RESPONSE_TYPE_OSC:
-      builder_ref = &macro->responses.items[i].response.as_osc.message_builder;
+    {
+      tosc_message_builder *builder_ref = &macro->responses.items[i].response.as_osc.message_builder;
+      tosc_messageBuilderPrint(builder_ref);
+
+      uint32_t bytes_written = tosc_messageBuilderBuild(builder_ref, send_buffer, send_buffer_size);
+      tosc_messageBuilderFree(builder_ref); // free the builder after building the message
+
+      if (bytes_written == 0)
+      {
+        printf("Failed to build response %zu\n", i + 1);
+        continue;
+      }
+
+      printf("Response %zu built: %d bytes\n", i + 1, bytes_written);
+
+      int send_result = sendto(socket_fd, send_buffer, bytes_written, 0, (struct sockaddr *)client_address, sizeof(struct sockaddr_in));
+      if (send_result < 0)
+      {
+        printf("failed to send response %zu\n", i + 1);
+        continue;
+      }
+
+      printf("Response %zu sent: %d bytes\n", i + 1, send_result);
       break;
+    }
     case OSC_MACRO_RESPONSE_TYPE_FACTORY:
     {
+      tosc_message_batch message_batch = {0};
+
       osc_macro_factory_invocation *invocation = &macro->responses.items[i].response.as_factory;
       osc_response_factory *factory = find_macro_response_factory(macro_collection, invocation->name);
 
@@ -81,40 +103,47 @@ void handle_trigger(osc_macro_collection *macro_collection, osc_macro *macro, in
         continue;
       }
 
-      bool factory_result = factory->callback(&factory_builder, invocation->args.items, invocation->args.count);
+      bool factory_result = factory->callback(&message_batch, invocation->args.items, invocation->args.count);
       if (!factory_result)
       {
         printf("Response factory '%s' failed to build response\n", invocation->name);
         continue;
       }
+
+      for (size_t i = 0; i < message_batch.messages.count; ++i)
+      {
+        printf("sending response %zu of %zu from factory '%s'\n", i + 1, message_batch.messages.count, invocation->name);
+        tosc_message_builder *builder_ref = &message_batch.messages.items[i];
+        tosc_messageBuilderPrint(builder_ref);
+
+        uint32_t bytes_written = tosc_messageBuilderBuild(builder_ref, send_buffer, send_buffer_size);
+
+        if (bytes_written == 0)
+        {
+          printf("Failed to build response %zu\n", i + 1);
+          continue;
+        }
+
+        printf("Response %zu built: %d bytes\n", i + 1, bytes_written);
+
+        int send_result = sendto(socket_fd, send_buffer, bytes_written, 0, (struct sockaddr *)client_address, sizeof(struct sockaddr_in));
+        if (send_result < 0)
+        {
+          printf("failed to send response %zu\n", i + 1);
+          continue;
+        }
+
+        printf("Response %zu sent: %d bytes\n", i + 1, send_result);
+      }
+
+      tosc_messageBatchFree(&message_batch); // free the batch after building the message
+
       break;
     }
     default:
-      printf("Unknown response type for response %d\n", i + 1);
+      printf("Unknown response type for response %zu\n", i + 1);
       continue;
     }
-
-    tosc_messageBuilderPrint(builder_ref);
-
-    uint32_t bytes_written = tosc_messageBuilderBuild(builder_ref, send_buffer, send_buffer_size);
-    tosc_messageBuilderFree(builder_ref); // free the builder after building the message
-
-    if (bytes_written == 0)
-    {
-      printf("Failed to build response %d\n", i + 1);
-      continue;
-    }
-
-    printf("Response %d built: %d bytes\n", i + 1, bytes_written);
-
-    int send_result = sendto(socket_fd, send_buffer, bytes_written, 0, (struct sockaddr *)client_address, sizeof(struct sockaddr_in));
-    if (send_result < 0)
-    {
-      printf("failed to send response %d\n", i + 1);
-      continue;
-    }
-
-    printf("Response %d sent: %d bytes\n", i + 1, send_result);
   }
 
   printf("\n");
