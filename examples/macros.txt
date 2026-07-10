@@ -8,5 +8,5 @@
 /channel/3/test()
 > echo("/hello/world" 1 2 3.14f)
 
-/channel/4/test()
-> wing_talk_to_single_bus("A" 1)
+/channel/5/test()
+> wing_talk_to("A" "B1" "MX8" "M1")
