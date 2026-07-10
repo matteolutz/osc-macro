@@ -24,7 +24,7 @@ asm: main.c $(LIB_SRC)
 
 # ---------- Phony Targets ----------
 clean:
-	rm osc-macro
+	rm -f osc-macro
 	rm -rf asm
 
 .PHONY: clean
