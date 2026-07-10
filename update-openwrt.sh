@@ -10,4 +10,4 @@ fi
 
 git reset --hard
 git pull
-./configure-openwrt.sh
+./configure-openwrt.sh --no-confirmation
