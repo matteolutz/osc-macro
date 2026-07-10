@@ -11,6 +11,8 @@ fi
 # Cleaning
 make clean
 
+# Remove src if it exists
+rm -rf src
 # Make src directory
 mkdir src
 
