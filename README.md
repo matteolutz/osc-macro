@@ -61,13 +61,50 @@ make dev
 ./osc-macro macros.txt
 ```
 
+## Building for OpenWRT
+
+As mentioned above, you can build the package for OpenWRT with the default target. The resulting `.ipk` or `.apk` file can then be installed on your OpenWRT device.
+
+1. To build and package for an OpenWRT target, you need to first set up the correct OpenWRT SDK for your target platform. You can find precompiled SDKs for many platforms on the [OpenWRT downloads page](https://downloads.openwrt.org/).
+
+2. After downloading and extracting the SDK, navigate to the SDK root directory and copy the `osc-macro` repository into the `package` directory. Inside the respository then run
+
+```sh
+./configure-openwrt.sh
+```
+
+to make a build environment for the OpenWRT SDK.
+
+3. From the SDK root directory, run the following commands to update the package feeds and build the package:
+
+```sh
+./scripts/feeds update -a
+./scripts/feeds install -a
+make defcofig
+make package/osc-macro/compile V=s
+```
+
+4. The resulting `.ipk` or `.apk` file will be located in the `bin/packages/<architecture>/base/osc-macro_<version>-<architecture>.<ipk|apk>` directory.
+
+5. You can then transfer this file to your OpenWRT device (e.g. using `scp`) and install it using the `opkg` or `apk` package manager:
+
+```sh
+opkg install /path/to/osc-macro_<version>-<architecture>.ipk
+```
+
+or
+
+```sh
+apk add --allow-untrusted /path/to/osc-macro_<version>-<architecture>.apk
+```
+
 ## Acknowledgements
 
 This project incorporates code from:
 
-- [tinyosc](https://github.com/mhroth/tinyosc) - Copyright (C) 2015 mhroth  
+- [tinyosc](https://github.com/mhroth/tinyosc) - Copyright (C) 2015 mhroth
   Licensed under the ISC License
-- [nob.h](https://github.com/tsoding/nob.h) - Copyright (C) 2024 Alexey Kutepov  
+- [nob.h](https://github.com/tsoding/nob.h) - Copyright (C) 2024 Alexey Kutepov
   Licensed under the MIT License
 
 ---
@@ -75,3 +112,11 @@ This project incorporates code from:
 > [matteolutz.de](https://matteolutz.de) &nbsp;&middot;&nbsp;
 > GitHub [@matteolutz](https://github.com/matteolutz) &nbsp;&middot;&nbsp;
 > Email [info@matteolutz.de](mailto:info@matteolutz.de)
+
+```
+
+```
+
+```
+
+```
