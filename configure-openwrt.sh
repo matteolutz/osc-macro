@@ -15,8 +15,7 @@ make clean
 mkdir src
 
 # Move all sources and headers to src
-mv *.c src/
-mv *.h src/
+mv *.c *.h src/ 2>/dev/null
 
 # Move include/ and lib/ dirs to src
 mv include src/
