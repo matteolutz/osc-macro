@@ -65,7 +65,7 @@ make dev
 
 As mentioned above, you can build the package for OpenWRT with the default target. The resulting `.ipk` or `.apk` file can then be installed on your OpenWRT device.
 
-1. To build and package for an OpenWRT target, you need to first set up the correct OpenWRT SDK for your target platform. You can find precompiled SDKs for many platforms on the [OpenWRT downloads page](https://downloads.openwrt.org/).
+1. To build and package for an OpenWRT target, you need to first set up the correct OpenWRT SDK for your OpenWRT version and target platform. You can find precompiled SDKs for many versions and platforms on the [OpenWRT downloads page](https://downloads.openwrt.org/).
 
 2. After downloading and extracting the SDK, navigate to the SDK root directory and copy the `osc-macro` repository into the `package` directory. Inside the respository then run
 
