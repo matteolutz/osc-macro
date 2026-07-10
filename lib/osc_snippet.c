@@ -4,6 +4,8 @@
 
 #include "vector.h"
 
+static VECTOR(osc_response_factory, registered_response_factories) = {0};
+
 static char *parse_message_builder_args(char *cursor, tosc_message_builder *builder)
 {
   while (*cursor != ')')
@@ -233,6 +235,36 @@ void register_macro_response_factory(osc_macro_collection *collection, const cha
 {
   osc_response_factory factory = {.name = name, .callback = callback};
   vec_push(&collection->response_factories, factory);
+}
+
+void register_macro_response_factory_globally(const char *name, bool (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], size_t arg_count))
+{
+  osc_response_factory factory = {.name = name, .callback = callback};
+  vec_push(&registered_response_factories, factory);
+}
+
+void load_registered_macro_response_factories(osc_macro_collection *collection)
+{
+  for (int i = 0; i < registered_response_factories.count; ++i)
+  {
+    osc_response_factory *candidate = &registered_response_factories.items[i];
+
+    bool already_registered = false;
+    for (int j = 0; j < collection->response_factories.count; ++j)
+    {
+      osc_response_factory *existing = &collection->response_factories.items[j];
+      if (strcmp(existing->name, candidate->name) == 0)
+      {
+        already_registered = true;
+        break;
+      }
+    }
+
+    if (!already_registered)
+    {
+      vec_push(&collection->response_factories, *candidate);
+    }
+  }
 }
 
 osc_response_factory *find_macro_response_factory(osc_macro_collection *collection, const char *name)

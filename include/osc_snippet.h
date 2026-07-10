@@ -110,6 +110,8 @@ char *parse_osc_macro_collection(char *macro_collection, osc_macro_collection *o
 osc_macro *find_macro_by_trigger_message(osc_macro_collection *collection, tosc_message *trigger_message);
 
 void register_macro_response_factory(osc_macro_collection *collection, const char *name, bool (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], size_t arg_count));
+void register_macro_response_factory_globally(const char *name, bool (*callback)(tosc_message_builder *out_message_builder, tosc_message_argument args[], size_t arg_count));
+void load_registered_macro_response_factories(osc_macro_collection *collection);
 osc_response_factory *find_macro_response_factory(osc_macro_collection *collection, const char *name);
 
 void free_osc_macro_response(osc_macro_response *response);

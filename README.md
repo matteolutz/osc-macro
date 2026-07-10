@@ -16,9 +16,9 @@ A tiny OSC macro daemon.
 
 ## Response Factories
 
-Response factories are registered in code and can then be referenced from the macro file by name.
+Response factories are registered in linked translation units and can then be referenced from the macro file by name.
 
-The included binary currently registers an `echo` factory. It expects the first argument to be an OSC address string, then copies any remaining arguments into the outgoing message.
+The included binary ships an `echo` factory in its own translation unit. It expects the first argument to be an OSC address string, then copies any remaining arguments into the outgoing message.
 
 Example:
 
@@ -27,7 +27,13 @@ Example:
 > echo("/hello/world" 1 2 3.14f)
 ```
 
-This keeps the macro file compact while still allowing responses that are assembled dynamically in C.
+This keeps the macro file compact while still allowing responses that are assembled dynamically in C. To add another factory, define it in a separate translation unit and register it with `OSC_REGISTER_MACRO_RESPONSE_FACTORY("name", callback);`. This global registration is done using a constructor function, so this is currently only supported by GCC and Clang.
+
+The factory callback is expected to have the following signature:
+
+```c
+void my_factory_callback(tosc_message_builder *builder, tosc_message_argument args[], size_t arg_count);
+```
 
 ## Planned
 

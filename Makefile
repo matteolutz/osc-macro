@@ -1,7 +1,7 @@
 RT_LIB = -lrt
 CFLAGS = -Os
 
-LIB_SRC = lib/tinyosc.c lib/osc_snippet.c
+LIB_SRC = lib/tinyosc.c lib/osc_snippet.c lib/osc_macro_factories.c
 
 all: osc-macro
 
@@ -22,9 +22,13 @@ asm: main.c $(LIB_SRC)
 		&& cd asm \
 		&& $(CC) $(CPPFLAGS) $(CFLAGS) -I ../include/ -Wall -S $(addprefix ../,$^)
 
+preprocess: pp.c
+pp.c: main.c $(LIB_SRC)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -I include/ -Wall -E $^ > pp.c
+
 # ---------- Phony Targets ----------
 clean:
-	rm -f osc-macro
+	rm -f osc-macro pp.c
 	rm -rf asm
 
 .PHONY: clean
