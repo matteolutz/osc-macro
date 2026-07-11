@@ -33,3 +33,6 @@ mv Makefile src/
 
 # Rename the openwrt Makefile
 mv Makefile.openwrt Makefile
+
+git_hash=$(git rev-parse --short HEAD)
+sed -i "s/{{git_hash}}/$git_hash/g" Makefile
