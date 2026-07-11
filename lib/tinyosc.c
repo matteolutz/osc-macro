@@ -38,6 +38,9 @@
 
 #define BUNDLE_ID 0x2362756E646C6500L // "#bundle"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 // http://opensoundcontrol.org/spec-1_0
 int tosc_parseMessage(tosc_message *o, char *buffer, const int len)
 {
@@ -748,3 +751,5 @@ void tosc_messageBatchFree(tosc_message_batch *batch)
   }
   vec_free(batch->messages);
 }
+
+#pragma GCC diagnostic pop
