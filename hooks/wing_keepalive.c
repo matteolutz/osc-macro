@@ -18,14 +18,8 @@ static bool wing_keepalive_send(osc_main_loop_context *context)
     tosc_message_builder builder = {0};
     tosc_messageBuilderSetAddress(&builder, "/*s");
 
-    osc_udp_transport transport = {
-        .socket_fd = context->socket_fd,
-        .destination_address = &context->client_address,
-        .send_buffer = context->send_buffer,
-        .send_buffer_size = context->send_buffer_size,
-    };
+    osc_udp_transport transport = main_loop_ctx_get_transport(context);
 
-    printf("sending wing keepalive to %s:%d\n", inet_ntoa(context->client_address.sin_addr), ntohs(context->client_address.sin_port));
     return osc_send_message_builder(&builder, &transport);
 }
 
@@ -43,9 +37,7 @@ static bool wing_keepalive_on_event(osc_main_loop_event_type event_type, osc_mai
             return true;
 
         if (wing_keepalive_next_send_at == 0)
-        {
             wing_keepalive_next_send_at = now;
-        }
 
         if (now < wing_keepalive_next_send_at)
             return true;

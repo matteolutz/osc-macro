@@ -55,6 +55,15 @@ void dispatch_main_loop_hooks(osc_main_loop_ctx *collection, osc_main_loop_event
     }
 }
 
+osc_udp_transport main_loop_ctx_get_transport(osc_main_loop_context *context)
+{
+    return (osc_udp_transport){
+        .socket_fd = context->socket_fd,
+        .destination_address = &context->client_address,
+        .send_buffer = context->send_buffer,
+        .send_buffer_size = context->send_buffer_size};
+}
+
 void free_main_loop_ctx(osc_main_loop_ctx *collection)
 {
     vec_free(collection->hooks);

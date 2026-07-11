@@ -67,6 +67,14 @@ bool send_message_builder(tosc_message_builder *builder, osc_udp_transport *tran
   return osc_send_message_builder(builder, transport);
 }
 
+static bool parse_ipv4_address(const char *address_text, struct sockaddr_in *out_address)
+{
+  out_address->sin_family = AF_INET;
+  out_address->sin_port = htons(2223);
+
+  return inet_pton(AF_INET, address_text, &out_address->sin_addr) == 1;
+}
+
 /**
  * Handle the given macro by sending all of its responses to the given socket client context.
  */
@@ -135,9 +143,9 @@ void handle_trigger(osc_macro_ctx *macro_ctx, osc_macro *macro, osc_udp_transpor
 
 int main(int argc, char *argv[])
 {
-  if (argc < 2)
+  if (argc < 2 || argc > 3)
   {
-    printf("Usage: %s <osc-macro-file>\n", argv[0]);
+    printf("Usage: %s <osc-macro-file> [remote-ip]\n", argv[0]);
     return 1;
   }
 
@@ -162,6 +170,19 @@ int main(int argc, char *argv[])
 
   load_registered_macro_response_factories(&macro_ctx);
   load_registered_main_loop_hooks(&main_loop_ctx);
+
+  bool use_fixed_peer = false;
+  struct sockaddr_in fixed_peer_address = {0};
+  if (argc == 3)
+  {
+    if (!parse_ipv4_address(argv[2], &fixed_peer_address))
+    {
+      printf("invalid IPv4 address: %s\n", argv[2]);
+      goto panic;
+    }
+
+    use_fixed_peer = true;
+  }
 
   char recv_buffer[2048];
   char send_buffer[2048];
@@ -196,6 +217,13 @@ int main(int argc, char *argv[])
   loop_context.received_message = NULL;
   loop_context.received_message_length = 0;
   loop_context.macro_ctx = &macro_ctx;
+
+  if (use_fixed_peer)
+  {
+    printf("restricting traffic to %s\n", argv[2]);
+    loop_context.client_address = fixed_peer_address;
+    loop_context.has_client_address = true;
+  }
 
   dispatch_main_loop_hooks(&main_loop_ctx, OSC_MAIN_LOOP_EVENT_START, &loop_context);
 
@@ -242,9 +270,17 @@ int main(int argc, char *argv[])
       continue;
     }
 
-    loop_context.client_address = client_address;
-    loop_context.client_address.sin_port = htons(2223);
-    loop_context.has_client_address = true;
+    if (use_fixed_peer && client_address.sin_addr.s_addr != fixed_peer_address.sin_addr.s_addr)
+    {
+      continue;
+    }
+
+    if (!use_fixed_peer)
+    {
+      loop_context.client_address = client_address;
+      loop_context.client_address.sin_port = htons(2223);
+      loop_context.has_client_address = true;
+    }
 
     if (tosc_isBundle(recv_buffer))
       continue; // do nothing we don't support bundles

@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 
 #include "osc_macro.h"
+#include "osc_macro_transport.h"
 
 typedef enum osc_main_loop_event_type_tag
 {
@@ -50,6 +51,9 @@ void register_main_loop_hook(osc_main_loop_ctx *collection, const char *name, bo
 void register_main_loop_hook_globally(const char *name, bool (*callback)(osc_main_loop_event_type event_type, osc_main_loop_context *context));
 void load_registered_main_loop_hooks(osc_main_loop_ctx *collection);
 void dispatch_main_loop_hooks(osc_main_loop_ctx *collection, osc_main_loop_event_type event_type, osc_main_loop_context *context);
+
+osc_udp_transport main_loop_ctx_get_transport(osc_main_loop_context *context);
+
 void free_main_loop_ctx(osc_main_loop_ctx *collection);
 
 #endif // OSC_MACRO_MAIN_LOOP_H
