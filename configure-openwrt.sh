@@ -26,6 +26,7 @@ mv *.c *.h src/ 2>/dev/null
 mv include src/
 mv lib src/
 mv factories src/
+mv hooks src/
 
 # Move Makefile to src
 mv Makefile src/

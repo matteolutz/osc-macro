@@ -29,6 +29,26 @@ Example:
 
 This keeps the macro file compact while still allowing responses that are assembled dynamically in C. To add another factory, define it in a separate translation unit and register it with `OSC_REGISTER_MACRO_RESPONSE_FACTORY("name", callback);`. This global registration is done using a constructor function, so this is currently only supported by GCC and Clang.
 
+## Main Loop Hooks
+
+For periodic or protocol-specific background work, the daemon exposes a separate main-loop hook API. Hooks are also registered from linked translation units with a constructor, then loaded into the runtime before the main loop starts.
+
+This is a good fit for the Behringer WING keepalive, because the hook can watch `OSC_MAIN_LOOP_EVENT_TICK` and send `/*s` whenever its timer expires without mixing that logic into macro parsing or response factories.
+
+Example:
+
+```c
+static bool my_hook(osc_main_loop_event_type event_type, osc_main_loop_context *context)
+{
+   if (event_type != OSC_MAIN_LOOP_EVENT_TICK)
+      return true;
+
+   return true;
+}
+
+OSC_REGISTER_MAIN_LOOP_HOOK("my_hook", my_hook);
+```
+
 The factory callback is expected to have the following signature:
 
 ```c
@@ -65,6 +85,12 @@ For other platforms, or when you want a local build without `-lrt`, use:
 ```sh
 make dev
 ./osc-macro macros.txt
+```
+
+To lock the daemon to a specific peer, pass an optional IPv4 address. In that mode, the daemon only accepts packets from that source address and sends responses back to it:
+
+```sh
+./osc-macro macros.txt 192.168.1.50
 ```
 
 ## Building for OpenWRT

@@ -1,7 +1,7 @@
 RT_LIB = -lrt
 CFLAGS = -Os
 
-LIB_SRC = lib/*.c factories/*.c
+LIB_SRC = lib/*.c factories/*.c hooks/*.c
 
 all: osc-macro
 
