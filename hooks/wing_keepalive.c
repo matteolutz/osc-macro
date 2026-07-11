@@ -10,7 +10,7 @@
 
 static time_t wing_keepalive_next_send_at = 0;
 
-static bool wing_keepalive_send(osc_main_loop_context *context)
+static bool wing_keepalive_send(osc_main_loop_hook_ctx *context)
 {
     if (!context->has_client_address)
         return true;
@@ -23,7 +23,7 @@ static bool wing_keepalive_send(osc_main_loop_context *context)
     return osc_send_message_builder(&builder, &transport);
 }
 
-static bool wing_keepalive_on_event(osc_main_loop_event_type event_type, osc_main_loop_context *context)
+static bool wing_keepalive_on_event(osc_main_loop_event_type event_type, osc_main_loop_hook_ctx *context)
 {
     time_t now = time(NULL);
 

@@ -7,13 +7,13 @@
 
 static VECTOR(osc_main_loop_hook, registered_main_loop_hooks) = {0};
 
-void register_main_loop_hook(osc_main_loop_ctx *collection, const char *name, bool (*callback)(osc_main_loop_event_type event_type, osc_main_loop_context *context))
+void register_main_loop_hook(osc_main_loop_ctx *collection, const char *name, bool (*callback)(osc_main_loop_event_type event_type, osc_main_loop_hook_ctx *context))
 {
     osc_main_loop_hook hook = {.name = name, .callback = callback};
     vec_push(&collection->hooks, hook);
 }
 
-void register_main_loop_hook_globally(const char *name, bool (*callback)(osc_main_loop_event_type event_type, osc_main_loop_context *context))
+void register_main_loop_hook_globally(const char *name, bool (*callback)(osc_main_loop_event_type event_type, osc_main_loop_hook_ctx *context))
 {
     osc_main_loop_hook hook = {.name = name, .callback = callback};
     vec_push(&registered_main_loop_hooks, hook);
@@ -43,7 +43,7 @@ void load_registered_main_loop_hooks(osc_main_loop_ctx *collection)
     }
 }
 
-void dispatch_main_loop_hooks(osc_main_loop_ctx *collection, osc_main_loop_event_type event_type, osc_main_loop_context *context)
+void dispatch_main_loop_hooks(osc_main_loop_ctx *collection, osc_main_loop_event_type event_type, osc_main_loop_hook_ctx *context)
 {
     for (size_t i = 0; i < collection->hooks.count; ++i)
     {
@@ -55,7 +55,7 @@ void dispatch_main_loop_hooks(osc_main_loop_ctx *collection, osc_main_loop_event
     }
 }
 
-osc_udp_transport main_loop_ctx_get_transport(osc_main_loop_context *context)
+osc_udp_transport main_loop_ctx_get_transport(osc_main_loop_hook_ctx *context)
 {
     return (osc_udp_transport){
         .socket_fd = context->socket_fd,

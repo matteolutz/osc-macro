@@ -8,7 +8,7 @@
 
 #include "tinyosc.h"
 
-typedef struct osc_udp_transport_tag
+typedef struct osc_udp_transport
 {
     int socket_fd;
     struct sockaddr_in *destination_address;

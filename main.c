@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
 
   osc_macro_ctx macro_ctx = {0};
   osc_main_loop_ctx main_loop_ctx = {0};
-  osc_main_loop_context loop_context = {0};
+  osc_main_loop_hook_ctx loop_context = {0};
 
   char *osc_macro_file = read_entire_file(argv[1]);
   if (osc_macro_file == NULL)
