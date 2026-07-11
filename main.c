@@ -1,21 +1,16 @@
 #include "osc_macro.h"
+#include "osc_macro_main_loop.h"
+#include "osc_macro_transport.h"
 #include "tinyosc.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <arpa/inet.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-
-typedef struct socket_response_ctx
-{
-  int socket_fd;
-  struct sockaddr_in *response_address;
-
-  char *send_buffer;
-  size_t send_buffer_size;
-} socket_response_ctx;
 
 /**
  * Read the entire file into a heap allocated buffer and return a pointer to it.
@@ -66,37 +61,18 @@ failed:
  * Build and send an OSC message from the given message builder to the given socket client context.
  * Returns true if the message was built and sent successfully, false otherwise.
  */
-bool send_message_builder(tosc_message_builder *builder, socket_response_ctx *ctx)
+bool send_message_builder(tosc_message_builder *builder, osc_udp_transport *transport)
 {
   tosc_messageBuilderPrint(builder);
-
-  uint32_t bytes_written = tosc_messageBuilderBuild(builder, ctx->send_buffer, ctx->send_buffer_size);
-
-  if (bytes_written == 0)
-  {
-    printf("Failed to build response\n");
-    return false;
-  }
-
-  printf("Response built: %d bytes\n", bytes_written);
-
-  int send_result = sendto(ctx->socket_fd, ctx->send_buffer, bytes_written, 0, (struct sockaddr *)ctx->response_address, sizeof(struct sockaddr_in));
-  if (send_result < 0)
-  {
-    printf("failed to send response\n");
-    return false;
-  }
-
-  printf("Response sent: %d bytes\n", send_result);
-  return true;
+  return osc_send_message_builder(builder, transport);
 }
 
 /**
  * Handle the given macro by sending all of its responses to the given socket client context.
  */
-void handle_trigger(osc_macro_ctx *macro_ctx, osc_macro *macro, socket_response_ctx *ctx)
+void handle_trigger(osc_macro_ctx *macro_ctx, osc_macro *macro, osc_udp_transport *transport)
 {
-  printf("Sending %zu responses to: %s:%d\n", macro->responses.count, inet_ntoa(ctx->response_address->sin_addr), ntohs(ctx->response_address->sin_port));
+  printf("Sending %zu responses to: %s:%d\n", macro->responses.count, inet_ntoa(transport->destination_address->sin_addr), ntohs(transport->destination_address->sin_port));
 
   for (size_t i = 0; i < macro->responses.count; ++i)
   {
@@ -107,7 +83,7 @@ void handle_trigger(osc_macro_ctx *macro_ctx, osc_macro *macro, socket_response_
     case OSC_MACRO_RESPONSE_TYPE_OSC:
     {
       tosc_message_builder *builder_ref = &macro->responses.items[i].response.as_osc.message_builder;
-      if (!send_message_builder(builder_ref, ctx))
+      if (!send_message_builder(builder_ref, transport))
       {
         printf("Failed to send response %zu\n", i + 1);
       }
@@ -134,19 +110,18 @@ void handle_trigger(osc_macro_ctx *macro_ctx, osc_macro *macro, socket_response_
         continue;
       }
 
-      for (size_t i = 0; i < message_batch.messages.count; ++i)
+      for (size_t j = 0; j < message_batch.messages.count; ++j)
       {
-        printf("sending response %zu of %zu from factory '%s'\n", i + 1, message_batch.messages.count, invocation->name);
+        printf("sending response %zu of %zu from factory '%s'\n", j + 1, message_batch.messages.count, invocation->name);
 
-        tosc_message_builder *builder_ref = &message_batch.messages.items[i];
-        if (!send_message_builder(builder_ref, ctx))
+        tosc_message_builder *builder_ref = &message_batch.messages.items[j];
+        if (!send_message_builder(builder_ref, transport))
         {
-          printf("Failed to send response %zu of %zu from factory '%s'\n", i + 1, message_batch.messages.count, invocation->name);
+          printf("Failed to send response %zu of %zu from factory '%s'\n", j + 1, message_batch.messages.count, invocation->name);
         }
       }
 
       tosc_messageBatchFree(&message_batch); // free the batch after building the message
-
       break;
     }
     default:
@@ -166,6 +141,10 @@ int main(int argc, char *argv[])
     return 1;
   }
 
+  osc_macro_ctx macro_ctx = {0};
+  osc_main_loop_ctx main_loop_ctx = {0};
+  osc_main_loop_context loop_context = {0};
+
   char *osc_macro_file = read_entire_file(argv[1]);
   if (osc_macro_file == NULL)
   {
@@ -173,7 +152,6 @@ int main(int argc, char *argv[])
     return 1; // don't go to panic, this would mean calling free on a NULL pointer
   }
 
-  osc_macro_ctx macro_ctx = {0};
   char *parse_success = parse_osc_macro_collection(osc_macro_file, &macro_ctx);
 
   if (parse_success == NULL)
@@ -183,6 +161,7 @@ int main(int argc, char *argv[])
   }
 
   load_registered_macro_response_factories(&macro_ctx);
+  load_registered_main_loop_hooks(&main_loop_ctx);
 
   char recv_buffer[2048];
   char send_buffer[2048];
@@ -208,12 +187,64 @@ int main(int argc, char *argv[])
 
   printf("osc-macro is listening on port 2223\n");
 
-  struct sockaddr_in client_address;
-  socklen_t client_address_size = sizeof(client_address);
+  loop_context.socket_fd = fd;
+  loop_context.has_client_address = false;
+  loop_context.recv_buffer = recv_buffer;
+  loop_context.recv_buffer_size = sizeof(recv_buffer);
+  loop_context.send_buffer = send_buffer;
+  loop_context.send_buffer_size = sizeof(send_buffer);
+  loop_context.received_message = NULL;
+  loop_context.received_message_length = 0;
+  loop_context.macro_ctx = &macro_ctx;
+
+  dispatch_main_loop_hooks(&main_loop_ctx, OSC_MAIN_LOOP_EVENT_START, &loop_context);
 
   while (1)
   {
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(fd, &read_fds);
+
+    struct timeval timeout = {
+        .tv_sec = 1,
+        .tv_usec = 0,
+    };
+
+    int select_result = select(fd + 1, &read_fds, NULL, NULL, &timeout);
+    if (select_result < 0)
+    {
+      if (errno == EINTR)
+      {
+        dispatch_main_loop_hooks(&main_loop_ctx, OSC_MAIN_LOOP_EVENT_TICK, &loop_context);
+        continue;
+      }
+
+      printf("select failed\n");
+      goto panic;
+    }
+
+    if (select_result == 0)
+    {
+      dispatch_main_loop_hooks(&main_loop_ctx, OSC_MAIN_LOOP_EVENT_TICK, &loop_context);
+      continue;
+    }
+
+    if (!FD_ISSET(fd, &read_fds))
+      continue;
+
+    struct sockaddr_in client_address;
+    socklen_t client_address_size = sizeof(client_address);
     int len = recvfrom(fd, recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr *)&client_address, &client_address_size);
+
+    if (len < 0)
+    {
+      printf("recvfrom failed\n");
+      continue;
+    }
+
+    loop_context.client_address = client_address;
+    loop_context.client_address.sin_port = htons(2223);
+    loop_context.has_client_address = true;
 
     if (tosc_isBundle(recv_buffer))
       continue; // do nothing we don't support bundles
@@ -221,31 +252,46 @@ int main(int argc, char *argv[])
     tosc_message osc;
     tosc_parseMessage(&osc, recv_buffer, len);
 
+    loop_context.received_message = &osc;
+    loop_context.received_message_length = len;
+
+    dispatch_main_loop_hooks(&main_loop_ctx, OSC_MAIN_LOOP_EVENT_MESSAGE, &loop_context);
+
     printf("Received OSC message:\n");
     tosc_printMessage(&osc);
     tosc_reset(&osc); // tosc_printMessage doesn't reset the marker so we have to do it manually
 
     osc_macro *triggered_macro = find_macro_by_trigger_message(&macro_ctx, &osc);
     if (triggered_macro == NULL)
+    {
+      loop_context.received_message = NULL;
+      loop_context.received_message_length = 0;
       continue;
+    }
 
-    client_address.sin_port = htons(2223); // send to port 2223
-    socket_response_ctx ctx = {
+    osc_udp_transport transport = {
         .socket_fd = fd,
-        .response_address = &client_address,
+        .destination_address = &loop_context.client_address,
         .send_buffer = send_buffer,
         .send_buffer_size = sizeof(send_buffer),
     };
 
     printf("------------------------- found macro for trigger ------------------------\n");
-    handle_trigger(&macro_ctx, triggered_macro, &ctx);
+    handle_trigger(&macro_ctx, triggered_macro, &transport);
     printf("-------------------------- done handling trigger -------------------------\n");
+
+    loop_context.received_message = NULL;
+    loop_context.received_message_length = 0;
   }
 
+  dispatch_main_loop_hooks(&main_loop_ctx, OSC_MAIN_LOOP_EVENT_SHUTDOWN, &loop_context);
+  free_main_loop_ctx(&main_loop_ctx);
+  free_osc_macro_ctx(&macro_ctx);
   free(osc_macro_file);
   return 0;
 
 panic:
+  free_main_loop_ctx(&main_loop_ctx);
   free_osc_macro_ctx(&macro_ctx);
   free(osc_macro_file);
   return 1;
