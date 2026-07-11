@@ -116,7 +116,7 @@ As mentioned above, you can build the package for OpenWRT with the default targe
    make package/osc-macro/compile V=s
    ```
 
-4. The resulting `.ipk` or `.apk` file will be located in the `bin/packages/<architecture>/base/osc-macro_<version>-<architecture>.<ipk|apk>` directory.
+4. The resulting `.ipk` or `.apk` file will be located in the `bin/packages/<architecture>/base/osc-macro_<version>_<architecture>.<ipk|apk>` directory.
 
 5. You can then transfer this file to your OpenWRT device (e.g. using `scp`) and install it using the `opkg` or `apk` package manager:
 
